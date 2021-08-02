@@ -1,0 +1,157 @@
+#  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
+import threading
+import time
+from typing import Union, Optional
+
+from common.consts import CLEAR_TO_END_LINE
+from common.convertors import time_to_short_string, size_to_human, speed_to_mbps
+from common.utils import show_message, get_parameter, get_terminal_width, inscribe_message
+
+
+class ProgressBar(object):
+    def __init__(self, caption: Union[str, bytes],
+                 max_value: Union[int, float],
+                 min_value: Optional[Union[int, float]] = None,
+                 show_size_in_bytes: Optional[bool] = True):
+        self._caption = caption
+        self._min_value = min_value if min_value is not None else 0
+        self._max_value = max_value
+        self._cur_value = self._min_value
+        self._lock = threading.Lock()
+        self._start_time = time.time()
+        self._speed = 0
+        self._elapsed = 0
+
+        self._show_size_in_bytes = show_size_in_bytes
+
+        self._display()
+
+    def __del__(self):
+        self.hide()
+
+    def _build_progress_bar(self, bar_width: Union[int, float]) -> str:
+        if self.percent == 0.0:
+            progress_bar = ' ' * (bar_width - 2)
+        elif self.percent >= 1.0:
+            progress_bar = '=' * (bar_width - 2)
+        else:
+            progress_bar = ''
+
+            fill_width = int(float(bar_width - 2) * float(self.percent))
+            empty_width = (bar_width - 2) - fill_width
+
+            progress_bar += '=' * (fill_width - 1)
+            progress_bar += ' ' * empty_width
+
+        return f'[{progress_bar}]'
+
+    def _build_progress_info(self) -> str:
+        end_time = time.time()
+        difference = end_time - self._start_time
+
+        if hasattr(self, '_old_difference'):
+            old_difference = self._old_difference
+        else:
+            old_difference = 0
+
+        if hasattr(self, '_old_cur_value'):
+            old_cur_value = self._old_cur_value
+        else:
+            old_cur_value = 0
+
+        seen_so_far = (self._cur_value - old_cur_value) - self._min_value
+        left_bytes = self.max_value - self._cur_value
+
+        if difference >= 5:
+            self._old_cur_value = self._cur_value
+            self._speed = seen_so_far / difference
+            self._elapsed = left_bytes / self._speed if self._speed != 0 else 0
+            self._start_time = end_time
+            self._old_difference = old_difference + difference
+
+        progress_bar_info_parts = []
+
+        if self._show_size_in_bytes:
+            progress_bar_info_parts.append(f'{self.percent:.02%} / {size_to_human(self._max_value)}')
+        else:
+            progress_bar_info_parts.append(f'{self.percent:.02%} / {self._max_value}')
+
+        if 0.025 < self.percent <= 1.0:
+            elapsed_time_string = time_to_short_string(self._elapsed)
+            if len(elapsed_time_string) > 0:
+                progress_bar_info_parts.append(f'{time_to_short_string(self._elapsed)} left')
+
+        if self._speed > 0:
+            if self._show_size_in_bytes:
+                progress_bar_info_parts.append(f'{speed_to_mbps(self._speed)}')
+            else:
+                progress_bar_info_parts.append(f'{self._speed:.02f} per seconds')
+
+        progress_bar_info = '  '.join(progress_bar_info_parts)
+
+        if len(progress_bar_info) > 0:
+            progress_bar_info = '  ' + progress_bar_info
+
+        return progress_bar_info
+
+    def _make_message(self) -> str:
+        terminal_width = get_terminal_width() - 2
+        column_width = terminal_width // 4
+
+        progress_bar = [inscribe_message(f'{self._caption}  ', width=column_width),
+                        self._build_progress_bar(bar_width=column_width),
+                        inscribe_message(self._build_progress_info(), width=terminal_width - column_width * 2)]
+
+        return ''.join(progress_bar)
+
+    def _display(self) -> None:
+        message = self._make_message()
+        with self._lock:
+            show_message('\r' + message + CLEAR_TO_END_LINE)
+
+    def __call__(self, *args, **kwargs) -> None:
+        bytes_amount = get_parameter(args, 0, (int, float))
+        self._cur_value = self._cur_value + bytes_amount
+        self._cur_value = max(self._min_value, self._cur_value)
+        self._cur_value = min(self._max_value, self._cur_value)
+        self._display()
+
+    @property
+    def max_value(self) -> Union[int, float]:
+        return self._max_value
+
+    @max_value.setter
+    def max_value(self, value: Union[int, float]):
+        self._max_value = value
+        self._cur_value = min(value, self._cur_value)
+
+    @property
+    def min_value(self) -> Union[int, float]:
+        return self._min_value
+
+    @min_value.setter
+    def min_value(self, value: Union[int, float]):
+        self._min_value = value
+        self._cur_value = max(value, self._cur_value)
+
+    @property
+    def percent(self) -> float:
+        return (float(self._cur_value) / float(self._max_value)) if self._max_value != 0.00 else 0.00
+
+    @property
+    def value(self):
+        return self._cur_value
+
+    @value.setter
+    def value(self, value: Union[int, float]) -> None:
+        self._cur_value = max(self._min_value, min(self._max_value, value))
+        self._display()
+
+    def show(self):
+        self._display()
+
+    def update(self):
+        self._display()
+
+    def hide(self):
+        show_message('\r' + CLEAR_TO_END_LINE, end='\r')

@@ -5,44 +5,23 @@ import threading
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union, Tuple
 
-import pytz
 import boto3
+import pytz
 from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
-from botocore.exceptions import ClientError
 from dateutil import tz
 
-import configure
-from s3.object import S3Object
-from common import app_logger, consts
-from common.utils import ProgressBar
+from common import app_logger
 from common import utils
+from common.consts import CPU_COUNT, FILE_SIZE_LIMIT, BUFFER_SIZE, MAX_CONCURRENCY, CLEAR_TO_END_LINE
+from common.progress_bar import ProgressBar
+from config import configure
+from s3._base._object import S3Object
+from s3.utils import client_exception_handler
 
 logger = app_logger.get_logger(__name__)
 
 UTC = pytz.UTC
-
-
-def client_exception_handler(skip_codes: Optional[Union[Tuple[str], List[str]]] = None):
-    def wrapper_exception_handler(fn):
-        def wrapper_func(*args, **kwargs):
-            try:
-                result = fn(*args, **kwargs)
-
-                return result
-            except ClientError as clientError:
-                logger.debug(f"Exception: {clientError}")
-                if skip_codes is None:
-                    raise
-                error = clientError.response.get('Error', {})
-                error_code = error.get('Code', 'Unknown')
-                if error_code not in skip_codes:
-                    raise clientError from None
-            return None
-
-        return wrapper_func
-
-    return wrapper_exception_handler
 
 
 class S3Storage(object):
@@ -60,7 +39,7 @@ class S3Storage(object):
             client_config = Config(
                 connect_timeout=10.0,
                 read_timeout=20.0,
-                max_pool_connections=consts.CPU_COUNT,
+                max_pool_connections=CPU_COUNT,
                 retries={
                     'total_max_attempts': 200,
                     'max_attempts': 100,
@@ -114,9 +93,9 @@ class S3Storage(object):
         logger.debug(f'Initialize configure...')
 
         self._config = TransferConfig(
-            multipart_threshold=consts.FILE_SIZE_LIMIT,
-            multipart_chunksize=consts.BUFFER_SIZE,
-            max_concurrency=consts.MAX_CONCURRENCY,
+            multipart_threshold=FILE_SIZE_LIMIT,
+            multipart_chunksize=BUFFER_SIZE,
+            max_concurrency=MAX_CONCURRENCY,
             use_threads=True
         )
 
@@ -429,9 +408,9 @@ class S3Storage(object):
                     remote_file_path,
                     Config=self._config,
                     Callback=ProgressBar(caption=f'Upload file {os.path.basename(remote_file_path)}',
-                                         max_value=local_file_size)
+                                         total=local_file_size)
                 )
-                utils.show_message('\r' + consts.CLEAR_TO_END_LINE + '\r')
+                utils.show_message('\r' + CLEAR_TO_END_LINE + '\r')
             else:
                 self._client.upload_file(
                     local_file_path,
@@ -439,7 +418,7 @@ class S3Storage(object):
                     remote_file_path,
                     Config=self._config
                 )
-            logger.debug(f'File {remote_file_path} upload completed {consts.CLEAR_TO_END_LINE}')
+            logger.debug(f'File {remote_file_path} upload completed {CLEAR_TO_END_LINE}')
 
     @client_exception_handler()
     def upload(self,

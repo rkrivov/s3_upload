@@ -10,8 +10,7 @@ from logging import Formatter
 from logging.handlers import RotatingFileHandler
 
 from common import consts
-from common.utils import append_end_path_sep
-
+from common.convertors import append_end_path_sep
 
 LOG_FILE_FMT = "%(levelname)s - %(asctime)s - %(name)s - %(module)s.%(funcName)s - %(threadName)s - %(message)s in %(pathname)s:%(lineno)d"
 LOG_CONSOLE_FMT = "[%(levelname)s]: %(message)s"
@@ -27,9 +26,9 @@ class DecorateStreamHandler(logging.StreamHandler):
                 # self.__colors[logging.getLevelName(logging.DEBUG)] = (consts.DGRAY+ consts.BOLD, consts.NBOLD + consts.DEF)
                 # self.__colors[logging.getLevelName(logging.INFO)] = (consts.CYAN + consts.BOLD, consts.NBOLD + consts.DEF)
                 self.__colors[logging.getLevelName(logging.WARNING)] = (
-                consts.YELLOW + consts.BOLD, consts.NBOLD + consts.DEF)
+                    consts.YELLOW + consts.BOLD, consts.NBOLD + consts.DEF)
                 self.__colors[logging.getLevelName(logging.ERROR)] = (
-                consts.RED + consts.BOLD, consts.NBOLD + consts.DEF)
+                    consts.RED + consts.BOLD, consts.NBOLD + consts.DEF)
                 self.__colors[logging.getLevelName(logging.CRITICAL)] = (
                     consts.CYAN + consts.BGRED, consts.BGDEF + consts.DEF)
                 self.__colors[logging.getLevelName(logging.FATAL)] = (
@@ -59,7 +58,7 @@ class CustomFilter(logging.Filter):
 
 
 class CustomFilterOnlyFor(CustomFilter):
-    def __init__(self, level , name=''):
+    def __init__(self, level, name=''):
         self._level = level
         super(CustomFilterOnlyFor, self).__init__(name)
 
@@ -67,6 +66,7 @@ class CustomFilterOnlyFor(CustomFilter):
         if record.levelname == logging.getLevelName(self._level):
             return super(CustomFilter, self).filter(record=record)
         return False
+
 
 def get_logger(name: str):
     log_dir = os.path.dirname(sys.argv[0])
@@ -82,20 +82,17 @@ def get_logger(name: str):
     console_handler = DecorateStreamHandler()
     console_handler.setLevel(logging.INFO)
 
-
     exp_info_file_handler = RotatingFileHandler('{}info.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
                                                 backupCount=consts.MAX_LOG_BACKUP_COUNT)
     exp_info_file_handler.setLevel(logging.INFO)
     exp_info_file_handler.addFilter(CustomFilterOnlyFor(level=logging.INFO))
     exp_info_file_handler.setFormatter(Formatter(LOG_FILE_FMT))
 
-
     exp_debug_file_handler = RotatingFileHandler('{}debug.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
                                                  backupCount=consts.MAX_LOG_BACKUP_COUNT)
     exp_debug_file_handler.setLevel(logging.DEBUG)
     exp_debug_file_handler.addFilter(CustomFilterOnlyFor(level=logging.DEBUG))
     exp_debug_file_handler.setFormatter(Formatter(LOG_FILE_FMT))
-
 
     exp_errors_file_handler = RotatingFileHandler('{}errors.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
                                                   backupCount=consts.MAX_LOG_BACKUP_COUNT)

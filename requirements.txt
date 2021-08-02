@@ -15,3 +15,5 @@ s3transfer==0.4.2
 shellescape==3.8.1
 six==1.16.0
 urllib3==1.26.5
+
+setuptools~=57.0.0

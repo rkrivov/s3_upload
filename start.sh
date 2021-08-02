@@ -10,6 +10,6 @@ if [ "x${WORK_FOLDER}x" != "x${CURRENT_FOLDER}x" ]; then
   trap 'cd "${CURRENT_FOLDER}"; trap - INT; kill -s INT "$$"' INT
 fi
 
-venv/bin/python parallels.py "$@"
+venv/bin/python main.py "$@"
 
 exit 0

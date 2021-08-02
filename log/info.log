@@ -270,3 +270,130 @@ INFO - 2021-08-02 11:01:08,624 - s3.parallels - parallels._do_run - MainThread -
 INFO - 2021-08-02 11:01:08,624 - s3.parallels - parallels._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels.py:828
 INFO - 2021-08-02 11:03:04,708 - s3.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels.py:356
 INFO - 2021-08-02 11:03:21,569 - __main__ - parallels.main - MainThread - Elapsed time is 2 minutes 26 seconds 608 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:147
+INFO - 2021-08-02 14:09:11,920 - __main__ - parallels.main - MainThread - Elapsed time is 3 seconds 723 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:19:03,533 - __main__ - parallels.main - MainThread - Elapsed time is 6 seconds 254 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:19:39,122 - __main__ - parallels.main - MainThread - Elapsed time is 22 seconds 267 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:20:47,430 - __main__ - parallels.main - MainThread - Elapsed time is 3 seconds 518 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:22:40,890 - __main__ - parallels.main - MainThread - Elapsed time is 13 seconds 709 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:24:34,426 - __main__ - parallels.main - MainThread - Elapsed time is 10 seconds 47 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:24:49,485 - __main__ - parallels.main - MainThread - Elapsed time is 1 second 573 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:24:53,039 - __main__ - parallels.main - MainThread - Elapsed time is 2 seconds 301 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:25:58,328 - __main__ - parallels.main - MainThread - Elapsed time is 8 seconds 219 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:47:17,904 - __main__ - parallels.main - MainThread - Elapsed time is 5 seconds 997 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:48:49,667 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:32
+INFO - 2021-08-02 14:48:49,761 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:49
+INFO - 2021-08-02 14:49:45,919 - __main__ - parallels.main - MainThread - Elapsed time is 1 minute 38 seconds 316 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:95
+INFO - 2021-08-02 14:52:21,287 - __main__ - parallels.main - MainThread - Elapsed time is 2 minutes 18 seconds 210 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:95
+INFO - 2021-08-02 14:52:52,867 - __main__ - parallels.main - MainThread - Elapsed time is 27 seconds 593 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:53:24,256 - __main__ - parallels.main - MainThread - Elapsed time is 13 seconds 711 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 14:54:18,537 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:32
+INFO - 2021-08-02 14:54:18,559 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:49
+INFO - 2021-08-02 14:54:31,075 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 14:55:03,124 - __main__ - parallels.main - MainThread - Elapsed time is 1 minute 17 seconds 561 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:95
+INFO - 2021-08-02 14:58:17,768 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 14:58:32,102 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 04:56:05. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:425
+INFO - 2021-08-02 14:58:33,697 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 14:58:34,096 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:436
+INFO - 2021-08-02 14:58:41,531 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:32
+INFO - 2021-08-02 14:58:41,568 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:49
+INFO - 2021-08-02 15:00:20,555 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:02:57,571 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:03:01,948 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 04:58:45. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:425
+INFO - 2021-08-02 15:03:01,949 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:03:01,949 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:436
+INFO - 2021-08-02 15:03:01,959 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:32
+INFO - 2021-08-02 15:03:02,007 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:49
+INFO - 2021-08-02 15:03:47,334 - s3._base._base - _base._copy_object - MainThread - Copy objects from Parallels/Windows 10 to Archives/2021/214/150347 Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/_base/_base.py:304
+INFO - 2021-08-02 15:03:55,859 - s3._base._base - _base._copy_object - MainThread - Copied 42 object(s). in /Users/rkrivov/PycharmProjects/s3_upload/s3/_base/_base.py:330
+INFO - 2021-08-02 15:03:55,899 - s3.storage - storage.delete_objects - MainThread - Parallels/Windows 10/harddisk.hdd/harddisk.hdd.0.{5fbaabe3-6958-40ff-92a7-860e329aab41}.hds was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:299
+INFO - 2021-08-02 15:03:55,899 - s3.storage - storage.delete_objects - MainThread - Parallels/Windows 10/config.pvs was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:299
+INFO - 2021-08-02 15:03:55,899 - s3.storage - storage.delete_objects - MainThread - Parallels/Windows 10/statistic.log was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:299
+INFO - 2021-08-02 15:03:55,900 - s3.storage - storage.delete_objects - MainThread - Parallels/Windows 10/config.pvs.backup was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:299
+INFO - 2021-08-02 15:03:55,900 - s3.storage - storage.delete_objects - MainThread - Parallels/Windows 10/parallels.log was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:299
+INFO - 2021-08-02 15:03:55,900 - s3.parallels.backup - backup._do_file_operation - MainThread - Upload file Parallels/Windows 10/config.pvs... in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/backup.py:25
+INFO - 2021-08-02 15:03:56,319 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:04:09,795 - __main__ - parallels.main - MainThread - Elapsed time is 1 minute 17 seconds 723 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 15:05:14,279 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:05:18,411 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:00:06. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:425
+INFO - 2021-08-02 15:05:18,411 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:05:18,412 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:436
+INFO - 2021-08-02 15:05:18,416 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:05:18,442 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:05:19,790 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:05:24,569 - __main__ - parallels.main - MainThread - Elapsed time is 21 seconds 682 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 15:06:17,008 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:06:21,032 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:01:06. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:425
+INFO - 2021-08-02 15:06:21,032 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:06:21,032 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:436
+INFO - 2021-08-02 15:06:21,039 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:06:21,070 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:07:55,955 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:08:00,864 - __main__ - parallels.main - MainThread - Elapsed time is 1 minute 46 seconds 37 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:95
+INFO - 2021-08-02 15:08:05,832 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:08:10,107 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:01:19. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:424
+INFO - 2021-08-02 15:08:10,107 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:434
+INFO - 2021-08-02 15:08:10,108 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:08:10,114 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:08:10,159 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:08:11,910 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:08:16,411 - __main__ - parallels.main - MainThread - Elapsed time is 13 seconds 578 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 15:08:32,157 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:08:36,032 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:01:42. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:424
+INFO - 2021-08-02 15:08:36,033 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:434
+INFO - 2021-08-02 15:08:36,033 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:08:36,039 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:08:36,076 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:10:55,941 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:11:03,708 - __main__ - parallels.main - MainThread - Elapsed time is 2 minutes 33 seconds 473 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 15:12:42,858 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:13:03,900 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:03:32. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:424
+INFO - 2021-08-02 15:13:03,900 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:434
+INFO - 2021-08-02 15:13:03,900 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:13:03,906 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:13:03,936 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:13:45,127 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:14:10,120 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:14:21,707 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:03:59. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:424
+INFO - 2021-08-02 15:14:21,707 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id=dabfc2f1-772e-4647-84a6-e44af284bf79). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:434
+INFO - 2021-08-02 15:14:21,708 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:14:21,712 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:14:21,738 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:17:08,373 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:17:12,845 - __main__ - parallels.main - MainThread - Elapsed time is 3 minutes 17 seconds 722 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:95
+INFO - 2021-08-02 15:17:35,886 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:17:42,377 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 01:01:30. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:424
+INFO - 2021-08-02 15:17:42,377 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id={dabfc2f1-772e-4647-84a6-e44af284bf79}). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:434
+INFO - 2021-08-02 15:17:42,377 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:17:42,383 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:17:42,418 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:17:53,983 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:17:58,585 - __main__ - parallels.main - MainThread - Elapsed time is 43 seconds 703 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 15:46:23,826 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:46:27,916 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:04:29. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:424
+INFO - 2021-08-02 15:46:27,916 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id={dabfc2f1-772e-4647-84a6-e44af284bf79}). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:434
+INFO - 2021-08-02 15:46:27,916 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 15:46:27,924 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 15:46:27,959 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 15:46:53,365 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 15:46:59,949 - __main__ - parallels.main - MainThread - Elapsed time is 1 minute 18 seconds 431 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/parallels.py:110
+INFO - 2021-08-02 19:00:01,363 - __main__ - parallels.main - MainThread - Elapsed time is 1 millisecond. in parallels.py:110
+INFO - 2021-08-02 21:08:53,887 - __main__ - parallels.main - MainThread - Elapsed time is 2 milliseconds. in parallels.py:110
+INFO - 2021-08-02 21:10:31,305 - __main__ - main.main - MainThread - Elapsed time is 2 milliseconds. in main.py:111
+INFO - 2021-08-02 21:11:05,255 - __main__ - main.main - MainThread - Elapsed time is 0 seconds. in main.py:114
+INFO - 2021-08-02 21:11:21,686 - __main__ - main.main - MainThread - Elapsed time is 2 milliseconds. in main.py:114
+INFO - 2021-08-02 21:11:46,481 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 21:11:59,935 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 05:33:02. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:424
+INFO - 2021-08-02 21:11:59,935 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id={dabfc2f1-772e-4647-84a6-e44af284bf79}). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:434
+INFO - 2021-08-02 21:11:59,936 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:435
+INFO - 2021-08-02 21:11:59,941 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 21:11:59,962 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 21:12:01,925 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:236
+INFO - 2021-08-02 21:12:14,156 - __main__ - main.main - MainThread - Elapsed time is 29 seconds 221 milliseconds. in main.py:114
+INFO - 2021-08-02 21:30:58,806 - s3.parallels.parallels - parallels.set_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:240
+INFO - 2021-08-02 21:31:03,061 - s3.parallels.operation - operation._do_run - MainThread - Uptime Virtual Machine Windows 10 is 10:58:07. in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:427
+INFO - 2021-08-02 21:31:03,062 - s3.parallels.operation - operation._do_run - MainThread - Found VM Windows 10 (VM) (vm_id={dabfc2f1-772e-4647-84a6-e44af284bf79}). in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:437
+INFO - 2021-08-02 21:31:03,062 - s3.parallels.operation - operation._do_run - MainThread - Home path: /Users/rkrivov/Parallels/Windows 10.pvm/ in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/operation.py:438
+INFO - 2021-08-02 21:31:03,069 - s3.storage - storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:33
+INFO - 2021-08-02 21:31:03,150 - s3.storage - storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/storage.py:50
+INFO - 2021-08-02 21:31:11,580 - s3.parallels.parallels - parallels.set_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/parallels/parallels.py:240
+INFO - 2021-08-02 21:31:22,421 - __main__ - main.main - MainThread - Elapsed time is 25 seconds 177 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:114

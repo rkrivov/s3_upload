@@ -1,0 +1,2 @@
+INFO - 2021-08-02 14:57:12,500 - __main__ - _backup.main - MainThread - Elapsed time is 4 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/.garbage/_backup.py:91
+INFO - 2021-08-02 14:57:22,481 - __main__ - _backup.main - MainThread - Elapsed time is 4 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/.garbage/_backup.py:91

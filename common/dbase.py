@@ -1,21 +1,26 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 
 import datetime
-from sqlite3 import ProgrammingError
 import hashlib
 import os
 import sqlite3
 import threading
 import time
 from datetime import datetime
-from sqlite3 import Error
+from sqlite3 import ProgrammingError
 from typing import Any, Dict, List, Mapping, Optional, Text, Tuple, Type, Union
 
+from common import consts
 from common import utils
-from common import app_logger, consts
-from common.utils import Closer, Arguments
+from common.app_logger import get_logger
+from common.arguments import Arguments
+from common.closer import Closer
+from common.convertors import convert_value_to_type, convert_value_to_string, get_string_case
+from common.metasingleton import MetaSingleton
+from common.progress_bar import ProgressBar
 
-logger = app_logger.get_logger(__name__)
+logger = get_logger(__name__)
+
 
 SQLITE_FIELD_ID: str = "id"
 SQLITE_FIELD_BUCKET: str = 'bucket_hash'
@@ -60,6 +65,7 @@ def convert_datetime(val):
 
     val = datetime.datetime(year, month, day, hours, minutes, seconds, microseconds)
     return val
+
 
 # def _retry_if_exception(exception):
 #     return isinstance(exception, Exception) and not isinstance(exception, ProgrammingError)
@@ -530,7 +536,7 @@ class DBRecord(object):
     def __str__(self):
         values_list = []
         for field in self.__get_values():
-            values_list.append(f"{field.name}: {utils.convert_value_to_string(field.value)}")
+            values_list.append(f"{field.name}: {convert_value_to_string(field.value)}")
 
         ret = ', '.join(values_list)
 
@@ -630,8 +636,9 @@ def trace_callback(*args, **kwargs) -> Any:
     return 0
 
 
-class DBManager(object):
-    def __init__(self, name: str = SQLITE_DATABASE_FILE, check_same_thread: bool = False, isolation_level: str = "IMMEDIATE"):
+class DBManager(metaclass=MetaSingleton):
+    def __init__(self, name: str = SQLITE_DATABASE_FILE, check_same_thread: bool = False,
+                 isolation_level: str = "IMMEDIATE"):
         super().__init__()
 
         self._connection = None
@@ -740,7 +747,8 @@ class DBManager(object):
                 self._connection.rollback()
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
-    def prepare_query(self, statement: Text, parameters: Optional[Union[Any, List[Any], Tuple[Any]]] = None) -> DBCursor:
+    def prepare_query(self, statement: Text,
+                      parameters: Optional[Union[Any, List[Any], Tuple[Any]]] = None) -> DBCursor:
         cursor = self.create_cursor()
 
         try:
@@ -760,7 +768,8 @@ class DBManager(object):
         return cursor
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
-    def execute(self, statement: Text, parameters: Optional[Union[Any, List[Any], Tuple[Any]]] = None) -> Union[Any, DBRecord]:
+    def execute(self, statement: Text, parameters: Optional[Union[Any, List[Any], Tuple[Any]]] = None) -> Union[
+        Any, DBRecord]:
         """
         Execute statement 'statement' with parameters ''parameters'.
         Parameters maybe None or any type.
@@ -774,7 +783,8 @@ class DBManager(object):
         return None
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
-    def execute_once(self, statement: Text, parameters: Optional[Union[Any, List[Any], Tuple[Any]]] = None) -> Optional[DBRecord]:
+    def execute_once(self, statement: Text, parameters: Optional[Union[Any, List[Any], Tuple[Any]]] = None) -> Optional[
+        DBRecord]:
         """
         Execute statement 'statement' with parameters ''parameters'.
         Parameters may be None or any type.
@@ -806,7 +816,7 @@ class DBManager(object):
                     self._is_modified = True
                     logger.debug("{updated_rows} {str}".format(
                         updated_rows=updated_rows,
-                        str=utils.get_string_case(updated_rows, 'record was updated', 'records were updated')
+                        str=get_string_case(updated_rows, 'record was updated', 'records were updated')
                     ))
 
                 return updated_rows
@@ -836,12 +846,12 @@ class DBManager(object):
             if not os.path.exists(db_path):
                 os.makedirs(db_path)
 
-            progress = utils.ProgressBackupDatabase(caption='Backup connection')
+            progress = ProgressBar(caption='Backup connection')
             try:
                 with sqlite3.connect(self._backup_databaseName) as backup_connection:
                     self._connection.backup(target=backup_connection, progress=progress)
             finally:
-                utils.ProgressBackupDatabase(caption='Backup connection')
+                del progress
 
     @staticmethod
     def convert_parameters(parameters: Any) -> Tuple[Any]:
@@ -908,94 +918,92 @@ class DBManagerThreaded(DBManager):
             return super(DBManagerThreaded, self).execute_script(script)
 
 
-get_database_manager_class = lambda: DBManagerThreaded if threading.current_thread().ident != threading.main_thread().ident else DBManager
-
-
 def create_database(name: str) -> DBManager:
-    database_class = get_database_manager_class()
-    return database_class(name=name)
+    if threading.current_thread().ident != threading.main_thread().ident:
+        return DBManagerThreaded(name=name)
+    else:
+        return DBManager(name = name)
 
 
-def do_insert(name: str, builder: SQLBuilder, *args) -> int:
-    try:
-        database_class = get_database_manager_class()
-
-        with Closer(database_class(name=name)) as database:
-            parameters = tuple(args) if len(args) > 0 else None
-            return database.execute_update(builder.make_insert_statement(), parameters)
-    except Error as error:
-        logger.error(error)
-
-    return 0
-
-
-def do_update(name: str, builder: SQLBuilder, *args) -> int:
-    try:
-        database_class = get_database_manager_class()
-
-        with Closer(database_class(name=name)) as database:
-            parameters = tuple(args) if len(args) > 0 else None
-            if parameters is not None:
-                return database.execute_update(builder.make_update_statement(), parameters)
-            else:
-                return database.execute_update(builder.make_update_statement())
-    except Exception as error:
-        logger.error(error)
-
-    return 0
-
-
-def do_delete(name: str, builder: SQLBuilder, *args) -> int:
-    try:
-        database_class = get_database_manager_class()
-
-        with Closer(database_class(name=name)) as database:
-            parameters = tuple(args) if len(args) > 0 else None
-            return database.execute_update(builder.make_delete_statement(), parameters)
-    except Error as error:
-        logger.error(error)
-
-    return 0
-
-
-def do_execute(name: str, builder: SQLBuilder, *args) -> Union[Any, DBRecord]:
-    try:
-        database_class = get_database_manager_class()
-
-        with Closer(database_class(name=name)) as database:
-            parameters = tuple(args) if len(args) > 0 else None
-            for record in database.execute(builder.make_select_statement(), parameters):
-                yield record
-    except Error as error:
-        logger.error(error)
-
-    return None
-
-
-def do_execute_once(name: str, builder: SQLBuilder, *args) -> Union[Any, DBRecord]:
-    try:
-        database_class = get_database_manager_class()
-
-        with Closer(database_class(name=name)) as database:
-            parameters = tuple(args) if len(args) > 0 else None
-            return database.execute_once(builder.make_select_statement(), parameters)
-    except Error as error:
-        logger.error(str(error))
-
-    return None
+# def do_insert(name: str, builder: SQLBuilder, *args) -> int:
+#     try:
+#         database_class = get_database_manager_class()
+#
+#         with Closer(database_class(name=name)) as database:
+#             parameters = tuple(args) if len(args) > 0 else None
+#             return database.execute_update(builder.make_insert_statement(), parameters)
+#     except Error as error:
+#         logger.error(error)
+#
+#     return 0
+#
+#
+# def do_update(name: str, builder: SQLBuilder, *args) -> int:
+#     try:
+#         database_class = get_database_manager_class()
+#
+#         with Closer(database_class(name=name)) as database:
+#             parameters = tuple(args) if len(args) > 0 else None
+#             if parameters is not None:
+#                 return database.execute_update(builder.make_update_statement(), parameters)
+#             else:
+#                 return database.execute_update(builder.make_update_statement())
+#     except Exception as error:
+#         logger.error(error)
+#
+#     return 0
+#
+#
+# def do_delete(name: str, builder: SQLBuilder, *args) -> int:
+#     try:
+#         database_class = get_database_manager_class()
+#
+#         with Closer(database_class(name=name)) as database:
+#             parameters = tuple(args) if len(args) > 0 else None
+#             return database.execute_update(builder.make_delete_statement(), parameters)
+#     except Error as error:
+#         logger.error(error)
+#
+#     return 0
+#
+#
+# def do_execute(name: str, builder: SQLBuilder, *args) -> Union[Any, DBRecord]:
+#     try:
+#         database_class = get_database_manager_class()
+#
+#         with Closer(database_class(name=name)) as database:
+#             parameters = tuple(args) if len(args) > 0 else None
+#             for record in database.execute(builder.make_select_statement(), parameters):
+#                 yield record
+#     except Error as error:
+#         logger.error(error)
+#
+#     return None
+#
+#
+# def do_execute_once(name: str, builder: SQLBuilder, *args) -> Union[Any, DBRecord]:
+#     try:
+#         database_class = get_database_manager_class()
+#
+#         with Closer(database_class(name=name)) as database:
+#             parameters = tuple(args) if len(args) > 0 else None
+#             return database.execute_once(builder.make_select_statement(), parameters)
+#     except Error as error:
+#         logger.error(str(error))
+#
+#     return None
 
 
 # --------------------
 
 def register_adapters_and_converters():
-
     def datetime_adapter(value):
         return time.mktime(value.timetuple())
 
     def datetime_conerter(value):
         if isinstance(value, bytes):
             value = value.decode(consts.ENCODER)
-        value = utils.convert_value_to_type(value, to_type=float, default=0)
+        value = convert_value_to_type(value, to_type=float, default=0)
         return datetime.fromtimestamp(value)
 
     sqlite3.register_adapter(datetime, datetime_adapter)
