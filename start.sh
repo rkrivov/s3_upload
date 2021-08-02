@@ -10,9 +10,6 @@ if [ "x${WORK_FOLDER}x" != "x${CURRENT_FOLDER}x" ]; then
   trap 'cd "${CURRENT_FOLDER}"; trap - INT; kill -s INT "$$"' INT
 fi
 
-AWS_ACCESS_KEY_ID="nsNJzeUb3GENgWoNh85533"
-AWS_SECRET_ACCESS_KEY="71oRDK5qFpdW97tfzZB985PbyTfiWuqhJdBdKCbri2fQ"
-
 venv/bin/python parallels.py "$@"
 
 exit 0
