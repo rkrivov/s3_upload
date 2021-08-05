@@ -62,8 +62,7 @@ def _calc_hash(file_object,
             converted_bytes += len(buffer)
             print_progress_bar(iteration=converted_bytes,
                                total=length,
-                               prefix=f'Calculate hash {hash_name.upper()}',
-                               length=get_terminal_width())
+                               prefix=f'Calculate hash {hash_name.upper()}')
 
     result = o_hash.hexdigest()
     return encode_string(result) if as_base64 else result

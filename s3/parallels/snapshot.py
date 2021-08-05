@@ -31,3 +31,23 @@ class ParallelsSnapshot(object):
 
     def put(self, key: str, value: Any) -> None:
         self.__dict__[key] = value
+
+    def __eq__(self, other):
+
+        if not hasattr(self, id):
+            return False
+
+        if not hasattr(other, 'id'):
+            return False
+
+        return self.id == other.id
+
+    def __ne__(self, other):
+        if not hasattr(self, id):
+            return True
+
+        if not hasattr(other, 'id'):
+            return True
+
+        return self.id != other.id
+

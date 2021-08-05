@@ -51,7 +51,7 @@ def main():
         parser.add_argument('-f', '--force',
                             dest='force', default=argparse.SUPPRESS,
                             action='store_true',
-                            help='Backup without check operations.')
+                            help='Backup without check operations_list.')
 
         args = parser.parse_args()
 

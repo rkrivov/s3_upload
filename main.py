@@ -75,31 +75,24 @@ def main():
         parser.add_argument('-f', '--force',
                             dest='force', default=argparse.SUPPRESS,
                             action='store_true',
-                            help='Backup without check operations.')
+                            help='Backup without check operations_list.')
 
+        parser.add_argument('--archive',
+                            dest='archive', default=argparse.SUPPRESS,
+                            action='store_true',
+                            help='Archiving Virtual Machive before backup.')
         parser.add_argument('--pack',
-                            dest='pack_vm', default=argparse.SUPPRESS,
+                            dest='pack', default=argparse.SUPPRESS,
                             action='store_true',
                             help='Packing Virtual Machine before backup')
 
-        print(sys.argv)
-
         args = parser.parse_args()
-
-        print(vars(args))
-        force = False
-        packing = False
-
-        if 'force' in args:
-            force = args.force
-
-        if 'pack_vm' in args:
-            packing = args.pack_vm
 
         CommandDispatch.execute(args.operation,
                                 bucket=args.bucket_name,
-                                force=force,
-                                pack=packing,
+                                archive=args.archive if 'archive' in args else False,
+                                force=args.force if 'force' in args else False,
+                                pack=args.pack if 'pack' in args else False,
                                 vm_id=args.vm_id if 'vm_id' in args else None,
                                 show_progress=_progress_visible_2_bool[args.progress_bar])
     except KeyboardInterrupt:
@@ -107,7 +100,9 @@ def main():
     # except Exception as exception:
     #     logger.critical(
     #         f"Exception {type(exception).__name__} with message \"{exception}\" is not caught",
-    #         stack_info=True
+    #         exc_info=1,
+    #         stack_info=True,
+    #         stacklevel=10
     #     )
     finally:
         end_time = time.time()

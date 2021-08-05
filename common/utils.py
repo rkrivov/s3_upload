@@ -14,7 +14,8 @@ import uuid
 from typing import Any, Callable, List, Optional, Tuple, Union, Dict, AnyStr
 
 from common import consts
-from common.consts import ENCODER
+from common.consts import ENCODER, CLEAR_TO_END_LINE
+from common.exceptions import ExecuteCommandException
 
 make_tmp_file_name = lambda: tempfile.mktemp(suffix="-" + str(uuid.uuid4().hex), dir=consts.TEMP_FOLDER)
 
@@ -23,8 +24,7 @@ make_tmp_file_name = lambda: tempfile.mktemp(suffix="-" + str(uuid.uuid4().hex),
 def reset(buffer):
     original_position = buffer.tell()
     buffer.seek(0, 2)
-    yield
-    buffer.seek(original_position, 0)
+    yield buffer.seek(original_position, 0)
 
 
 def is_callable(obj):
@@ -175,33 +175,40 @@ def inscribe_message(message: Union[str, bytes], width: Optional[int] = None) ->
 
 
 def run_command(*args, **kwargs) -> Any:
-    try:
-        shell = kwargs.pop('shell', True)
 
-        stdout = kwargs.pop('stdout', subprocess.PIPE)
-        stderr = kwargs.pop('stderr', subprocess.STDOUT)
+    shell = kwargs.pop('shell', True)
 
-        input = kwargs.pop('input', None)
-        timeout = kwargs.pop('timeout', None)
+    stdout = kwargs.pop('stdout', subprocess.PIPE)
+    stderr = kwargs.pop('stderr', subprocess.STDOUT)
 
-        command = ' '.join(args)
+    input = kwargs.pop('input', None)
+    timeout = kwargs.pop('timeout', None)
 
-        process = subprocess.Popen(command, shell=shell, stdout=stdout, stderr=stderr)
+    command = ' '.join(args)
 
-        output = process.communicate(input=input, timeout=timeout)
+    process = subprocess.Popen(command, shell=shell, stdout=stdout, stderr=stderr)
 
-        if len(output) > 0:
-            output = output[0]
-            output = output.decode(json.detect_encoding(output))
-            output = output.strip()
+    output = process.communicate(input=input, timeout=timeout)
+    return_code = process.returncode
+
+    if len(output) > 0:
+        output = output[0]
+        output = output.decode(json.detect_encoding(output))
+        output = output.strip()
+    else:
+        output = ''
+
+    if return_code != 0:
+        error_message = f"{output}"
+
+        if len(error_message) == 0:
+            error_message = f'Command failed with code: {return_code} [{command}]'
         else:
-            output = None
+            error_message = f"{error_message} (retcode is {return_code})."
 
-        return output
-    except:
-        pass
+        raise ExecuteCommandException(error_message) from None
 
-    return None
+    return output
 
 
 def get_string(o) -> str:
@@ -310,8 +317,6 @@ def find_uuid(value: str) -> Optional[str]:
                 if start_pos >= 0 and start_pos < len(value) and end_pos >= 0 and end_pos < len(value):
                     result = value[start_pos:end_pos]
                     return f"{{{result}}}"
-            return result
-
     return None
 
 
@@ -359,11 +364,12 @@ def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, lengt
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    percent_f = iteration / float(total) if total != 0 else 0
+    percent = ("{0:." + str(decimals) + "%}").format(percent_f)
 
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
+    print(f'\r{prefix} |{bar}| {percent} {suffix}{CLEAR_TO_END_LINE}', end=printEnd)
     # Print New Line on Complete
     if iteration == total:
         print()

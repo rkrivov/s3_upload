@@ -12,7 +12,7 @@ class Arguments(object):
         self.__current_index = 0
         self.__arguments_count = len(self.__args)
 
-    def get(self, argument_type: Union[Any, Union[Tuple[Any], List[Any]]] = None, throw_error: bool = True) -> Any:
+    def get(self, argument_type: Union[Any, Union[Tuple[Any], List[Any]]] = None, throw_error: bool = True, default: Any = None) -> Any:
         if self.__current_index < self.__arguments_count:
             result = get_parameter(
                 self.__args,
@@ -24,7 +24,7 @@ class Arguments(object):
                 self.__current_index += 1
 
             return result
-        return None
+        return default
 
     def get_all_for(self, argument_type: Union[Any, Union[Tuple[Any], List[Any]]] = None):
         ret = None

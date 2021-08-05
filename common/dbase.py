@@ -29,8 +29,8 @@ SQLITE_FIELD_SIZE: str = "file_size"
 SQLITE_FIELD_MTIME: str = "last_modified"
 SQLITE_FIELD_HASH: str = "hash_md5"
 
-SQLITE_DATABASE_FILE = os.path.join(consts.WORK_FOLDER, 'operations.db')
-SQLITE_TABLE_NAME = "operations"
+SQLITE_DATABASE_FILE = os.path.join(consts.WORK_FOLDER, 'operations_list.db')
+SQLITE_TABLE_NAME = "operations_list"
 
 CREATE_TABLE_SQL = f"""
     --- The scipt was written {datetime.now()} by Eochaid Bres Drow

@@ -3,7 +3,7 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Text
 from uuid import UUID
 
 import pytz
@@ -16,17 +16,17 @@ from common.convertors import append_start_path_sep, append_end_path_sep, \
     decode_string, encode_string, remove_end_path_sep, time_to_string
 from common.dbase import SQLBuilder
 from common.notify import notify
-from common.utils import print_progress_bar, get_terminal_width
+from common.utils import print_progress_bar, get_terminal_width, get_parameter
 from s3._base._base import S3Base, _get_name_hash, _get_file_info, INFO_NEW, INFO_OP, OP_INSERT, INFO_FIELD_NAME, \
     INFO_FIELD_SIZE, INFO_FIELD_MTIME, INFO_FIELD_HASH, OP_DELETE, INFO_OLD
 from s3._base._consts import VM_STATUS_RUNNING, VM_STATUS_PAUSED, VM_SNAPSHOT_DAYS_COUNT, VM_SNAPSHOT_COUNT, \
-    VM_SNAPSHOT_POWER_ON, VM_TYPE_PACKED, VM_TYPE_ARCHIVED
+    VM_SNAPSHOT_POWER_ON, VM_TYPE_PACKED, VM_TYPE_ARCHIVED, VM_STATUS_SUSPENDED
 from s3._base._typing import VM_UUID
 from s3.parallels.errors import VMUnknownUUIDError
 from s3.parallels.parallels import Parallels
 from s3.parallels.uuid_decoder import UUIDDecoder
 from s3.parallels.uuid_encoder import UUIDEncoder
-from s3.utils import convert_uuid_to_string
+from s3.utils import convert_uuid_to_string, remote_brackets
 
 logger = get_logger(__name__)
 
@@ -53,9 +53,15 @@ class S3ParallelsOperation(S3Base):
     CREATE UNIQUE INDEX IF NOT EXISTS {TABLE}_{FIELD_UUID}_idx ON {TABLE} ({FIELD_UUID});
     """
 
-    def __init__(self, bucket: str):
+    def __init__(self, bucket: str, /, **kwargs):
         self._database = dbase.create_database(name=S3ParallelsOperation.DATABASE)
         self._database.execute_script(S3ParallelsOperation.SCRIPT)
+
+        self._force = kwargs.pop('force', False)
+        self._need_archive = kwargs.pop('archive', False)
+        self._need_pack = kwargs.pop('pack', False)
+        self._show_progress = kwargs.pop('show_progress', True)
+        self._vm_uuid = kwargs.pop('vm_id', True)
 
         self._parallels = None
         self._suspended = {}
@@ -159,13 +165,13 @@ class S3ParallelsOperation(S3Base):
         return operations
 
     def _fetch_remote_files_list(self, remote_path: str = None,
-                                 operations: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                                 operations_list: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
         if remote_path is None:
             remote_path = self._archive_path
 
-        if operations is None:
-            operations = {}
+        if operations_list is None:
+            operations_list = {}
 
         prefix = append_end_path_sep(remote_path)
         objects_count = self.storage.get_objects_count(prefix=prefix)
@@ -178,7 +184,7 @@ class S3ParallelsOperation(S3Base):
                     loaded_objects_count += 1
                     print_progress_bar(iteration=loaded_objects_count,
                                        total=objects_count,
-                                       prefix=f'Feching remote objects froom {remote_path}')
+                                       prefix='Feching remote objects')
 
                 file_name = remote_object.get('Key')
 
@@ -197,10 +203,7 @@ class S3ParallelsOperation(S3Base):
                 file_hash = convert_value_to_type(remote_object.get('ETag', None), to_type=str)
 
                 if file_hash is not None:
-                    if file_hash.startswith('"'):
-                        file_hash = file_hash[1:]
-                    if file_hash.endswith('"'):
-                        file_hash = file_hash[:-1]
+                    file_hash = remote_brackets(file_hash, '"')
 
                 file_info = {
                     INFO_FIELD_NAME: file_name,
@@ -209,12 +212,12 @@ class S3ParallelsOperation(S3Base):
                     INFO_FIELD_HASH: file_hash
                 }
 
-                operation_info = operations.setdefault(name_hash, {})
+                operation_info = operations_list.setdefault(name_hash, {})
 
                 operation_info[INFO_OLD] = file_info
                 operation_info[INFO_OP] = OP_DELETE
 
-        return operations
+        return operations_list
 
     def _load_vm_info(self, vm_uuid: VM_UUID) -> Optional[Dict[str, Any]]:
         vm_uuid_s = convert_uuid_to_string(vm_uuid, True)
@@ -307,9 +310,6 @@ class S3ParallelsOperation(S3Base):
 
         return vm_name
 
-    def _notify(self, message):
-        notify(message=message, title='s3_upload', subtitle=type(self).__name__);
-
     def _is_suspended(self, vm_id: VM_UUID) -> bool:
         if vm_id in self._suspended:
             return self._suspended[vm_id]
@@ -384,22 +384,26 @@ class S3ParallelsOperation(S3Base):
 
             remote_path = f'Parallels/{name}'
 
+            self.set_local_path(local_path=locale_path)
+            self.set_archive_path(remote_path=remote_path)
+
             files = self._fetch_local_files_list(local_path=locale_path)
-            files = self._fetch_remote_files_list(remote_path=remote_path, operations=files)
+            files = self._fetch_remote_files_list(remote_path=remote_path, operations_list=files)
 
             if len(files) > 0:
                 files = self._check_files(files)
 
                 if len(files) > 0:
-                    dt = datetime.now()
+                    if not self.force:
+                        dt = datetime.now()
 
-                    archive_name = name
-                    archive_name = f'{dt.strftime("%H%M%S")} {archive_name}'
-                    archive_path = append_end_path_sep(os.path.join('Archives', dt.strftime('%Y/%j')))
-                    archive_path = remove_end_path_sep(archive_path)
-                    archive_path = os.path.join(archive_path, archive_name)
+                        archive_name = name
+                        archive_name = f'{dt.strftime("%H%M%S")} {archive_name}'
+                        archive_path = append_end_path_sep(os.path.join('Archives', dt.strftime('%Y/%j')))
+                        archive_path = remove_end_path_sep(archive_path)
+                        archive_path = os.path.join(archive_path, archive_name)
 
-                    self._copy_object(src=remote_path, dst=archive_path)
+                        self._copy_object(src=remote_path, dst=archive_path)
                     self._do_operation(files)
 
     def _check_exists_vm(self, vm_id: VM_UUID) -> bool:
@@ -416,7 +420,17 @@ class S3ParallelsOperation(S3Base):
     def _do_run(self, vm_id: VM_UUID):
         if self._check_exists_vm(vm_id=vm_id):
 
-            self._suspend(vm_id)
+            last_vm_status = self.parallels.get_status(vm_id=vm_id)
+
+            if self.need_pack:
+                if last_vm_status in [VM_STATUS_PAUSED, VM_STATUS_SUSPENDED]:
+                    self.parallels.resume(vm_id=vm_id)
+                    last_vm_status = self.parallels.get_status(vm_id=vm_id)
+
+                if last_vm_status in [VM_STATUS_RUNNING]:
+                    self.parallels.stop(vm_id=vm_id)
+            else:
+                self._suspended(vm_id=vm_id)
             try:
 
                 self._pack_vm(vm_id)
@@ -434,7 +448,7 @@ class S3ParallelsOperation(S3Base):
                         vm_type = vm_info.get('type')
                         vm_name = vm_info.get('name')
 
-                        logger.info(f"Found VM {vm_name} ({vm_type}) (vm_id={vm_uuid}).")
+                        logger.info(f"Found {vm_type} {vm_name} with identifier {vm_uuid}.")
                         logger.info(f"Home path: {vm_home}")
 
                         self._run_process(vm_info=vm_info)
@@ -445,32 +459,32 @@ class S3ParallelsOperation(S3Base):
                     self._unpack_vm(vm_id)
 
             finally:
-                self._resume(vm_id=vm_id)
+                if self.need_pack:
+                    if last_vm_status in [VM_STATUS_RUNNING]:
+                        self.parallels.start(vm_id=vm_id)
+                else:
+                    self._resume(vm_id=vm_id)
         else:
             raise VMUnknownUUIDError(vm_id=vm_id)
 
     def _pack_vm(self, vm_id: VM_UUID):
-        if self.pack:
-            self._notify(f'We begin to pack VM {convert_uuid_to_string(vm_id)}...')
+        if self.need_pack:
             self.parallels.pack_vm(vm_id)
             vm_id = convert_uuid_to_string(vm_id)
             self._packed[vm_id] = True
-            self._notify(f'We finished packing VM {convert_uuid_to_string(vm_id)}...')
 
     def _is_packed(self, vm_id: VM_UUID):
-        is_packed = self._packed.get(convert_uuid_to_string(vm_id))
+        is_packed = self._packed.get(vm_id, False)
         return is_packed
 
     def _unpack_vm(self, vm_id: VM_UUID):
         vm_id_s = convert_uuid_to_string(vm_id)
         is_packed = self._packed.get(vm_id_s, False)
         if is_packed:
-            self._notify(f'We begin to unpack VM {convert_uuid_to_string(vm_id)}...')
             self.parallels.unpack_vm(vm_id)
             del self._packed[vm_id_s]
-            self._notify(f'We finished unpacking VM {convert_uuid_to_string(vm_id)}...')
 
-    def process(self, *args, **kwargs) -> None:
+    def process(self, /, **kwargs) -> None:
         if hasattr(self, '_storage'):
             del self._storage
 
@@ -483,17 +497,10 @@ class S3ParallelsOperation(S3Base):
             self._do_run(vm_id=self.vm_uuid)
 
     @classmethod
-    def execute(cls, *args, **kwargs):
-        bucket_name = kwargs.pop('bucket', False)
-
-        o = cls(bucket=bucket_name)
+    def execute(cls, bucket_name: str, /, **kwargs):
+        o = cls(bucket=bucket_name, **kwargs)
 
         try:
-            o.force = kwargs.pop('force', False)
-            o.pack = kwargs.pop('pack', False)
-            o.show_progress = kwargs.pop('show_progress', True)
-            o.vm_uuid = kwargs.pop('vm_id', True)
-
-            o.process(*args, **kwargs)
+            o.process(**kwargs)
         finally:
             del o

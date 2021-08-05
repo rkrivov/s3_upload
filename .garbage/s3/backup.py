@@ -29,7 +29,7 @@ class S3Backup(S3Base):
         return super(S3Backup, self)._compare_files(file_info_old=file_info_old, file_info_new=file_info_new)
 
     def _do_operation(self, files: Dict[str, Any]):
-        remote_files = self._get_remote_files_list(files)
+        remote_files = _get_remote_files_list(files)
 
         if len(remote_files) > 0:
             remote_files = [{'Key': file_info.get(INFO_FIELD_NAME)} for file_info in remote_files]

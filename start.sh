@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+echo "------------------------------------------------"
+echo "Application was started from" $(whoami)
+echo "User home folder is" ${HOME}
+echo "AWS security folder is ${HOME}/.aws/"
+echo "------------------------------------------------"
+
+echo ""
+
 WORK_FOLDER="${HOME}/PycharmProjects/s3_upload"
 CURRENT_FOLDER="$(pwd)"
 

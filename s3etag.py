@@ -39,7 +39,7 @@ def main():
     partsizes = [  ## Default Partsizes Map
         8388608,  # aws_cli/boto3
         15728640,  # s3cmd
-        factor_of_1MB(filesize, num_parts)  # Used by many clients to upload large operations
+        factor_of_1MB(filesize, num_parts)  # Used by many clients to upload large operations_list
     ]
 
     print(f"Input file: {args.inputfile}")

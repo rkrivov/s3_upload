@@ -1,9 +1,13 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 from typing import Any
 
+from common.notify import notify
+
 
 class VMError(Exception):
-    pass
+    def __init__(self, *args, **kwargs):
+        notify(message='\n'.join(args), title='Exception', subtitle=type(self).__name__)
+        super(VMError, self).__init__(*args)
 
 
 class VMIncorrectUUIDError(VMError):

@@ -52,7 +52,7 @@ def main():
         parser.add_argument('--progress-bar', type=str, choices=list(_progress_visible_2_bool.keys()),
                             default=_progress_visible,
                             help='visible or hidden progress bar (default: %(default)s)')
-        parser.add_argument('--all', dest='backup_all', help="Backuping all operations.")
+        parser.add_argument('--all', dest='backup_all', help="Backuping all operations_list.")
         parser.add_argument('-b', dest='bucket', type=str, metavar='BUCKET',
                             help='name of S3 bucket (default: %(default)s)', default=configure.S3_BUCKET_NAME)
         parser.add_argument('--local-path', dest='local_path', type=str, metavar='LOCAL PATH', required=True,

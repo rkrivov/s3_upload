@@ -467,6 +467,7 @@ def time_to_string(time_value: Union[int, float], use_milliseconds: bool = False
             time_parts.append(f'{minutes} minute{"s" if minutes > 1 else ""}')
         if seconds > 0:
             time_parts.append(f'{seconds} second{"s" if seconds > 1 else ""}')
+
         if use_milliseconds and mseconds > 0:
             time_parts.append(f'{mseconds} millisecond{"s" if mseconds > 1 else ""}')
 

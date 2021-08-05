@@ -4,6 +4,8 @@ import sys
 import psutil
 from botocore.response import StreamingBody
 
+APP_NAME = os.path.basename(os.path.dirname(sys.argv[0]))
+
 HOME_FOLDER = os.environ.get('HOME')
 WORK_FOLDER = os.path.dirname(sys.argv[0])
 TEMP_FOLDER = os.path.join(HOME_FOLDER, '.tmp/')

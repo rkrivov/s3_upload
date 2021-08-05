@@ -34,7 +34,7 @@ class S3Restore(S3Base):
         return super(S3Restore, self)._compare_files(file_info_old=file_info_old, file_info_new=file_info_new)
 
     def _do_operation(self, files: Dict[str, Any]):
-        local_files = self._get_local_files_list(files)
+        local_files = _get_local_files_list(files)
         local_files = [file_info.get(INFO_FIELD_NAME) for file_info in local_files]
 
         for local_file_name in local_files:

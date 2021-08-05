@@ -313,7 +313,7 @@ class S3Storage(object):
                                    Key=remote_file_path,
                                    Filename=local_file_path,
                                    Config=self._config,
-                                   Callback=ProgressBar(caption=f'Download file', max_value=content_length))
+                                   Callback=ProgressBar(caption='File download process', max_value=content_length))
 
     @client_exception_handler(['404'])
     def get_bucket_encryption(self):
@@ -407,7 +407,7 @@ class S3Storage(object):
                     self._bucket,
                     remote_file_path,
                     Config=self._config,
-                    Callback=ProgressBar(caption=f'Upload file {os.path.basename(remote_file_path)}',
+                    Callback=ProgressBar(caption='File upload process',
                                          total=local_file_size)
                 )
                 utils.show_message('\r' + CLEAR_TO_END_LINE + '\r')

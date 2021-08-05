@@ -67,6 +67,22 @@ def _get_file_info(file: str) -> Optional[Dict[str, Any]]:
     return file_info
 
 
+def _get_remote_files_list(files: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+    result = [operation_info.get(INFO_OLD, None) for _, operation_info in files.items()]
+    result = [file_info for file_info in result if file_info is not None]
+
+    return result
+
+
+def _get_local_files_list(files: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+    result = [operation_info.get(INFO_NEW, None) for _, operation_info in files.items()]
+    result = [file_info for file_info in result if file_info is not None]
+
+    return result
+
+
 class S3Base(metaclass=MetaSingleton):
 
     def __init__(self, bucket: str, local_path: Optional[str] = None, remote_path: Optional[str] = None):
@@ -125,17 +141,30 @@ class S3Base(metaclass=MetaSingleton):
         self._force = value
 
     @property
-    def pack(self) -> bool:
-        pack = False
+    def need_archive(self) -> bool:
+        need_archive = False
 
-        if hasattr(self, '_pack_vm'):
-            pack = self._pack
+        if hasattr(self, '_need_archive'):
+            need_archive = self._need_archive
 
-        return pack
+        return need_archive
 
-    @pack.setter
-    def pack(self, value: bool):
-        self._pack = value
+    @need_archive.setter
+    def need_archive(self, value: bool):
+        self._need_archive = value
+
+    @property
+    def need_pack(self) -> bool:
+        need_pack = False
+
+        if hasattr(self, '_need_pack'):
+            need_pack = self._need_pack
+
+        return need_pack
+
+    @need_pack.setter
+    def need_pack(self, value: bool):
+        self._need_pack = value
 
     @property
     def show_progress(self) -> bool:
@@ -311,8 +340,7 @@ class S3Base(metaclass=MetaSingleton):
                 completed_objects_count += 1
                 print_progress_bar(iteration=completed_objects_count,
                                    total=objects_count,
-                                   prefix='Copying objects',
-                                   length=get_terminal_width())
+                                   prefix='Copying objects')
 
             src_name = fetch_object.get('Key')
             dst_name = src_name
@@ -332,19 +360,20 @@ class S3Base(metaclass=MetaSingleton):
     def _fetch_files(self) -> Dict[str, Any]:
         files = {}
 
-        files = self._fetch_local_files_list(opetations=files)
-        files = self._fetch_remote_files_list(operations=files)
+        files = self._fetch_local_files_list(operations_list=files)
+        files = self._fetch_remote_files_list(operations_list=files)
 
         return files
 
-    def _fetch_local_files_list(self, local_path: str = None, opetations: Optional[Dict[str, Any]] = None) -> Dict[
+    def _fetch_local_files_list(self, local_path: str = None,
+                                operations_list: Optional[Dict[str, Any]] = None) -> Dict[
         str, Any]:
 
         if local_path is None:
             local_path = self._local_path
 
-        if opetations is None:
-            opetations = {}
+        if operations_list is None:
+            operations_list = {}
 
         if os.path.isfile(local_path):
             local_file_name = local_path
@@ -360,7 +389,7 @@ class S3Base(metaclass=MetaSingleton):
 
             file_info = _get_file_info(file=local_file_name)
 
-            operation_info = opetations.setdefault(name_hash, {})
+            operation_info = operations_list.setdefault(name_hash, {})
             operation_info[INFO_NEW] = file_info
             operation_info[INFO_OP] = OP_INSERT
         else:
@@ -382,20 +411,20 @@ class S3Base(metaclass=MetaSingleton):
 
                         file_info = _get_file_info(file=local_file_path)
 
-                        operation_info = opetations.setdefault(name_hash, {})
+                        operation_info = operations_list.setdefault(name_hash, {})
                         operation_info[INFO_NEW] = file_info
                         operation_info[INFO_OP] = OP_INSERT
 
-        return opetations
+        return operations_list
 
-    def _fetch_remote_files_list(self, remote_path: str = None, operations: Optional[Dict[str, Any]] = None) -> Dict[
-        str, Any]:
+    def _fetch_remote_files_list(self, remote_path: str = None,
+                                 operations_list: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
         if remote_path is None:
             remote_path = self._archive_path
 
-        if operations is None:
-            operations = {}
+        if operations_list is None:
+            operations_list = {}
 
         prefix = append_end_path_sep(remote_path)
         objects_count = self.storage.get_objects_count(prefix=prefix)
@@ -439,25 +468,11 @@ class S3Base(metaclass=MetaSingleton):
                     INFO_FIELD_HASH: file_hash
                 }
 
-                operation_info = operations.setdefault(name_hash, {})
+                operation_info = operations_list.setdefault(name_hash, {})
                 operation_info[INFO_OLD] = file_info
                 operation_info[INFO_OP] = OP_DELETE
 
-        return operations
-
-    def _get_local_files_list(self, files: Dict[str, Any]) -> List[Dict[str, Any]]:
-
-        result = [operation_info.get(INFO_NEW, None) for _, operation_info in files.items()]
-        result = [file_info for file_info in result if file_info is not None]
-
-        return result
-
-    def _get_remote_files_list(self, files: Dict[str, Any]) -> List[Dict[str, Any]]:
-
-        result = [operation_info.get(INFO_OLD, None) for _, operation_info in files.items()]
-        result = [file_info for file_info in result if file_info is not None]
-
-        return result
+        return operations_list
 
     def _make_local_file(self, file_name: str) -> str:
         return make_string_from_template(file_name, path=remove_end_path_sep(self._local_path))
@@ -467,17 +482,13 @@ class S3Base(metaclass=MetaSingleton):
 
     def _do_operation(self, files: Dict[str, Any]):
         pass
-        # TODO Restore the following lines after testing
-        # if len(self._files) > 0:
-        #
-        #     self._process_upload_files()
 
     def _operation(self):
 
         files = {}
 
-        files = self._fetch_remote_files_list(operations=files)
-        files = self._fetch_local_files_list(opetations=files)
+        files = self._fetch_remote_files_list(operations_list=files)
+        files = self._fetch_local_files_list(operations_list=files)
 
         if len(files) > 0:
             files = self._check_files(files)

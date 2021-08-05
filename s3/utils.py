@@ -1,11 +1,13 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 import re
-from typing import Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple, List, Text
 from uuid import UUID
 
 from botocore.exceptions import ClientError
 
 from common import app_logger
+from common.consts import APP_NAME
+from common.notify import notify
 from s3._base._typing import VM_UUID
 from s3.parallels.errors import VMError
 
@@ -38,22 +40,50 @@ def check_result(result: str):
     logger.debug(f'RESULT: {result}')
 
     if '\n' in result:
-        result = result.split('\n')
-        if len(result) > 0:
-            result = result[-1]
+        lines = result.split('\n')
+        if len(lines) > 0:
+            result = lines[-1]
 
     result = result.strip()
+
     if ('error' in result.lower()) or ('fail' in result.lower()):
         raise VMError(result)
 
 
-def remove_curly_brackets(value: str) -> str:
-    items = re.findall(r'\{([^\}]+)\}', value)
 
-    if len(items) > 0:
-        return items[-1]
+def remote_brackets(value: Text, brackets: Union[str, Tuple[str], List[str]]) -> str:
+    def __get_brackets(v: Union[str, Tuple[str], List[str]], ix: int) -> str:
+        if isinstance(v, str):
+            return v
+
+        if isinstance(v, list) or isinstance(v, tuple):
+            if ix >= len(v):
+                raise IndexError(f'Index {ix} out of range (0..{len(v) - 1}.')
+            return v[ix]
+
+        raise ValueError(f"Incorrect brackets ({v}).")
+
+    start_bracket = __get_brackets(brackets, 0)
+    start_bracket = re.escape(start_bracket)
+
+    end_bracket = __get_brackets(brackets, 1)
+    end_bracket = re.escape(end_bracket)
+
+    pattern = r'^' + start_bracket + r'(?P<value>[^' + end_bracket + r']+)' + end_bracket + r'$'
+    m = re.match(pattern=pattern, string=value)
+
+    if m is not None:
+        result = m.groupdict()
+
+        return result.get('value', None) \
+            if result is not None \
+            else value
 
     return value
+
+
+def remove_curly_brackets(value: str) -> str:
+    return remote_brackets(value, ('{', '}'))
 
 
 def convert_uuid_to_string(vm_id: VM_UUID, use_curly_brackets: bool = True) -> str:
