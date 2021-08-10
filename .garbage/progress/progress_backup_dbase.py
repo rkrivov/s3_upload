@@ -1,9 +1,8 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 from typing import Union
 
+from common.functions import get_parameter
 from progress.progress_bar import ProgressBar
-
-from common.utils import get_parameter
 
 
 class ProgressBackupDatabase(ProgressBar):

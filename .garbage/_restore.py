@@ -4,7 +4,8 @@ import argparse
 import time
 
 from common import app_logger
-from common import utils
+from common import functions
+
 from config import configure
 from s3.restore import S3Restore
 
@@ -40,13 +41,13 @@ def main():
                             dest='bucket', type=str, metavar='BUCKET',
                             help='name of S3 bucket (default: %(default)s)', default=configure.S3_BUCKET_NAME)
 
-        parser.add_argument('-l', '--local-path',
+        parser.add_argument('-l', '--local-parallels_home_path',
                             dest='local_path', type=str, metavar='LOCAL PATH', required=True,
-                            help="The local path for file recovery.")
+                            help="The local parallels_home_path for file recovery.")
 
-        parser.add_argument('-r', '--remote-path',
+        parser.add_argument('-r', '--remote-parallels_home_path',
                             dest='remote_path', type=str, metavar='REMOTE PATH', required=True,
-                            help="The remote path for downloading the file.")
+                            help="The remote parallels_home_path for downloading the file.")
 
         parser.add_argument('-f', '--force',
                             dest='force', default=argparse.SUPPRESS,
@@ -62,7 +63,7 @@ def main():
             restore.force = args.force if 'force' in args and args.force is not None else False
             restore.show_progress = _progress_visible_2_bool[args.progress_bar]
 
-            restore.process(local_path=args.local_path, remote_path=args.remote_path)
+            restore.run_process(local_path=args.local_path, remote_path=args.remote_path)
         finally:
             del restore
 
@@ -73,7 +74,7 @@ def main():
     finally:
         end_time = time.time()
         logger.info(
-            f'Elapsed time is {utils.time_to_string(end_time - start_time, use_milliseconds=True, human=True)}.'
+            f'Elapsed time is {functions.time_to_string(end_time - start_time, use_milliseconds=True, human=True)}.'
         )
 
 

@@ -1,0 +1,69 @@
+INFO - 2021-08-05 10:52:16,947 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 3 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 10:52:54,527 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 2 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 10:53:07,025 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 3 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 10:53:17,769 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 521 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 10:58:05,972 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 16 seconds 254 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 10:58:36,723 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 3 seconds 86 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 11:01:59,481 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 2 minutes 54 seconds 428 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 11:02:24,600 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 23 seconds 780 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 11:03:10,721 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 16 seconds 57 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 15:49:56,777 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 4 hours 46 minutes 11 seconds 235 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 15:50:10,772 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 10 seconds 894 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 15:52:49,486 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 2 minutes 24 seconds 215 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 15:53:36,621 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 44 seconds 908 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 16:45:53,991 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 52 minutes 14 seconds 610 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 16:46:19,913 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 22 seconds 875 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 16:46:28,225 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 6 seconds 94 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 16:47:10,253 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 39 seconds 941 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 16:47:49,688 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 24 seconds 697 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 16:49:06,143 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 42 seconds 412 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 16:49:13,736 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 4 seconds 974 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 16:50:52,887 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 45 seconds 954 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 16:53:10,475 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 2 minutes 15 seconds 480 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 16:53:44,209 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 26 seconds 214 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 16:57:13,830 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 19 seconds 232 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 16:58:32,114 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 13 seconds 274 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 16:59:50,398 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 47 seconds 823 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 17:00:28,608 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 35 seconds 347 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 17:02:00,758 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 18 seconds 855 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 17:02:20,496 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 17 seconds 778 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 17:28:38,571 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 26 minutes 15 seconds 851 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 20:38:17,593 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 3 hours 9 minutes 36 seconds 910 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:90
+INFO - 2021-08-05 21:50:52,842 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 41 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:53:56,338 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 440 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:54:44,038 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 255 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:55:00,484 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 176 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:55:46,586 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 319 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:56:00,089 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 176 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:56:18,404 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 268 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:56:41,907 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 266 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:56:51,888 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 201 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 21:59:58,240 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 384 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 22:00:15,614 - s3_upload.s3.s3parallels.parallels - parallels.set_virtual_machine_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/parallels.py:283
+INFO - 2021-08-05 22:00:22,730 - s3_upload.s3.s3parallels.operation - operation._process - MainThread - Found VM Windows 10 with identifier dabfc2f1-772e-4647-84a6-e44af284bf79  and uptime is about 51 hours. in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/operation.py:459
+INFO - 2021-08-05 22:00:23,738 - s3_upload.s3.s3storage - s3storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:35
+INFO - 2021-08-05 22:00:23,777 - s3_upload.s3.s3storage - s3storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:52
+INFO - 2021-08-05 22:00:26,033 - s3_upload.s3.s3parallels.parallels - parallels.set_virtual_machine_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/parallels.py:283
+INFO - 2021-08-05 22:00:38,951 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 26 seconds 565 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 22:36:07,645 - s3_upload.s3.s3parallels.parallels - parallels.set_virtual_machine_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/parallels.py:283
+INFO - 2021-08-05 22:36:12,949 - s3_upload.s3.s3parallels.operation - operation._process - MainThread - Found VM Windows 10 with identifier dabfc2f1-772e-4647-84a6-e44af284bf79  and uptime is over 51 hours. in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/operation.py:459
+INFO - 2021-08-05 22:36:13,641 - s3_upload.s3.s3storage - s3storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:35
+INFO - 2021-08-05 22:36:13,695 - s3_upload.s3.s3storage - s3storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:52
+INFO - 2021-08-05 22:36:14,785 - s3_upload.s3.s3parallels.parallels - parallels.set_virtual_machine_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/parallels.py:283
+INFO - 2021-08-05 22:36:25,156 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 20 seconds 167 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108
+INFO - 2021-08-05 23:10:32,652 - s3_upload.s3.s3parallels.parallels - parallels.set_virtual_machine_status - MainThread - Set status SUSPEND to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/parallels.py:283
+INFO - 2021-08-05 23:10:37,671 - s3_upload.s3.s3parallels.operation - operation._process - MainThread - Found VM Windows 10 with identifier dabfc2f1-772e-4647-84a6-e44af284bf79  and uptime is about 52 hours. in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/operation.py:459
+INFO - 2021-08-05 23:10:38,208 - s3_upload.s3.s3storage - s3storage.__init__ - MainThread - Open S3 AWS Session... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:35
+INFO - 2021-08-05 23:10:38,268 - s3_upload.s3.s3storage - s3storage.__init__ - MainThread - Initialize S3 AWS client for https://hb.bizmrg.com... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:52
+INFO - 2021-08-05 23:11:05,186 - s3_upload.s3.s3base.s3baseobject - s3baseobject._copy_object - MainThread - Copy objects.py from Parallels/Windows 10 to Archives/2021/217/231105 Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3base/s3baseobject.py:332
+INFO - 2021-08-05 23:11:05,780 - s3_upload.s3.s3base.s3baseobject - s3baseobject._copy_object - MainThread - Copied 21 object(s). in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3base/s3baseobject.py:357
+INFO - 2021-08-05 23:11:05,806 - s3_upload.s3.s3storage - s3storage.delete_objects - MainThread - Parallels/Windows 10/VmInfo.pvi was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:302
+INFO - 2021-08-05 23:11:05,807 - s3_upload.s3.s3storage - s3storage.delete_objects - MainThread - Parallels/Windows 10/parallels.log was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:302
+INFO - 2021-08-05 23:11:05,808 - s3_upload.s3.s3storage - s3storage.delete_objects - MainThread - Parallels/Windows 10/harddisk.hdd/harddisk.hdd.0.{5fbaabe3-6958-40ff-92a7-860e329aab41}.hds was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:302
+INFO - 2021-08-05 23:11:05,808 - s3_upload.s3.s3storage - s3storage.delete_objects - MainThread - Parallels/Windows 10/statistic.log was deleted. in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3storage.py:302
+INFO - 2021-08-05 23:11:05,809 - s3_upload.s3.s3parallels.backup - backup._do_file_operation - MainThread - Upload file Parallels/Windows 10/VmInfo.pvi... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/backup.py:42
+INFO - 2021-08-05 23:11:05,929 - s3_upload.s3.s3parallels.backup - backup._do_file_operation - MainThread - Upload file Parallels/Windows 10/statistic.log... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/backup.py:42
+INFO - 2021-08-05 23:11:06,346 - s3_upload.s3.s3parallels.backup - backup._do_file_operation - MainThread - Upload file Parallels/Windows 10/parallels.log... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/backup.py:42
+INFO - 2021-08-05 23:11:07,447 - s3_upload.s3.s3parallels.backup - backup._do_file_operation - MainThread - Upload file Parallels/Windows 10/harddisk.hdd/harddisk.hdd.0.{5fbaabe3-6958-40ff-92a7-860e329aab41}.hds... in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/backup.py:42
+INFO - 2021-08-05 23:26:10,326 - s3_upload.s3.s3parallels.parallels - parallels.set_virtual_machine_status - MainThread - Set status RESUME to VM Windows 10 in /Users/rkrivov/PycharmProjects/s3_upload/s3/s3parallels/parallels.py:283
+INFO - 2021-08-05 23:26:11,170 - s3_upload.__main__ - main.main - MainThread - Elapsed time is 15 minutes 41 seconds 306 milliseconds. in /Users/rkrivov/PycharmProjects/s3_upload/main.py:108

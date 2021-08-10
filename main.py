@@ -1,55 +1,51 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 
 import argparse
-import sys
 import time
 import uuid
+from argparse import Namespace
 
-from common import app_logger
-from common import utils
-from common.convertors import time_to_string
 from config import configure
 from dispatchers.command_dispatch import CommandDispatch
+from utils.app_logger import get_logger
+from utils.consts import APP_NAME
+from utils.convertors import time_to_string
 
-_progress_visible = 'visible'
-_progress_hidden = 'hidden'
+logger = get_logger(__name__)
 
-_progress_visible_2_bool = {
-    _progress_visible: True,
-    _progress_hidden: False
+_progress_is_visible = 'visible'
+_progress_is_hidden = 'hidden'
+
+_progress_status_2_boolean = {
+    _progress_is_visible: True,
+    _progress_is_hidden: False
 }
 
-_bool_2_progress_visible = {
-    True: _progress_visible,
-    False: _progress_hidden
+_boolean_2_progress_status = {
+    True: _progress_is_visible,
+    False: _progress_is_hidden
 }
-
-logger = app_logger.get_logger(__name__)
 
 
 @CommandDispatch(shortname='backup', longname='do_backup_vm')
 def do_backup_vm(*args, **kwargs):
-    logger.debug(f'Start backup Virtual Machines: ({args}) ({kwargs})')
-
-    from s3.parallels.backup import S3ParallelsBackup
-
-    S3ParallelsBackup.execute(*args, **kwargs)
+    logger.debug(f'Start backup Virtual Machines({kwargs})')
+    from s3.s3parallels.backup import S3ParallelsBackup
+    S3ParallelsBackup.start(*args, **kwargs)
 
 
 @CommandDispatch(shortname='restore', longname='do_restore_vm')
 def do_restore_vm(*args, **kwargs):
-    logger.debug(f'Start restore Virtual Machines: ({args}) ({kwargs})')
-
-    from s3.parallels.restore import S3ParallelsRestore
-
-    S3ParallelsRestore.execute(S3ParallelsRestore, *args, **kwargs)
+    logger.debug(f'Start restore Virtual Machines ({kwargs})')
+    from s3.s3parallels.restore import S3ParallelsRestore
+    S3ParallelsRestore.start(*args, **kwargs)
 
 
 def main():
     start_time = time.time()
 
     try:
-        parser = argparse.ArgumentParser(prog='s3_upload')
+        parser = argparse.ArgumentParser(prog=APP_NAME)
 
         parser.add_argument(
             'operation',
@@ -60,12 +56,12 @@ def main():
 
         parser.add_argument('-p', '--progress',
                             dest='progress_bar', type=str,
-                            choices=list(_progress_visible_2_bool.keys()),
-                            default=_progress_visible,
+                            choices=list(_progress_status_2_boolean.keys()),
+                            default=_progress_is_visible,
                             help='visible or hidden progress bar (default: %(default)s)')
 
         parser.add_argument('-i', '--id',
-                            dest='vm_id', type=uuid.UUID, metavar='VMUUID',
+                            dest='virtual_machine_id', type=uuid.UUID, metavar='UUID',
                             help='Parallels Virtual Machine Id.')
 
         parser.add_argument('-b', '--bucket-name',
@@ -77,33 +73,51 @@ def main():
                             action='store_true',
                             help='Backup without check operations_list.')
 
-        parser.add_argument('--archive',
-                            dest='archive', default=argparse.SUPPRESS,
+        parser.add_argument('--delete-removed',
+                            dest='delete_removed', default=argparse.SUPPRESS,
                             action='store_true',
-                            help='Archiving Virtual Machive before backup.')
-        parser.add_argument('--pack',
-                            dest='pack', default=argparse.SUPPRESS,
-                            action='store_true',
-                            help='Packing Virtual Machine before backup')
+                            help='Delete removed files from S3 Storage Bucket.')
 
-        args = parser.parse_args()
+        # parser.add_argument('--archive',
+        #                     dest='archive', default=argparse.SUPPRESS,
+        #                     action='store_true',
+        #                     help='Archiving Virtual Machine before backup.')
 
-        CommandDispatch.execute(args.operation,
-                                bucket=args.bucket_name,
-                                archive=args.archive if 'archive' in args else False,
-                                force=args.force if 'force' in args else False,
-                                pack=args.pack if 'pack' in args else False,
-                                vm_id=args.vm_id if 'vm_id' in args else None,
-                                show_progress=_progress_visible_2_bool[args.progress_bar])
+        # parser.add_argument('--pack',
+        #                     dest='pack', default=argparse.SUPPRESS,
+        #                     action='store_true',
+        #                     help='Packing Virtual Machine before backup')
+
+        args: Namespace = parser.parse_args()
+
+        kwargs = {
+            'backup_name': args.bucket_name,
+            'show_progress': _progress_status_2_boolean[args.progress_bar]
+        }
+
+        if 'archive' in args:
+            kwargs.update(archive=True)
+
+        if'force' in args:
+            kwargs.update(force=True)
+
+        if 'pack' in args:
+            kwargs.update(pack=True)
+
+        if 'delete_removed' in args:
+            kwargs.update(delete_removed=True)
+
+        if 'virtual_machine_id' in args:
+            kwargs.update(virtual_machine_id=args.virtual_machine_id)
+
+        CommandDispatch.execute(args.operation, **kwargs)
     except KeyboardInterrupt:
         logger.warning('User terminate program!')
-    # except Exception as exception:
-    #     logger.critical(
-    #         f"Exception {type(exception).__name__} with message \"{exception}\" is not caught",
-    #         exc_info=1,
-    #         stack_info=True,
-    #         stacklevel=10
-    #     )
+    except Exception as exception:
+        logger.critical(
+            f"Exception {type(exception).__name__} with message \"{exception}\" is not caught",
+            exc_info=1
+        )
     finally:
         end_time = time.time()
         logger.info(

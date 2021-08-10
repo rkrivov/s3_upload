@@ -4,11 +4,11 @@ import argparse
 import time
 
 from common import app_logger
-from common import utils
 from common.convertors import time_to_string
+
 from config import configure
 from s3.backup import S3Backup
-from s3.storage import S3Storage
+from s3.s3storage import S3Storage
 
 _progress_visible = 'visible'
 _progress_hidden = 'hidden'
@@ -38,7 +38,7 @@ def process(
 
         backup.show_progress = show_progress
 
-        backup.process(local_path=local_path, remote_path=remote_path, all_files=all_files)
+        backup.run_process(local_path=local_path, remote_path=remote_path, all_files=all_files)
     finally:
         del backup
 
@@ -55,10 +55,12 @@ def main():
         parser.add_argument('--all', dest='backup_all', help="Backuping all operations_list.")
         parser.add_argument('-b', dest='bucket', type=str, metavar='BUCKET',
                             help='name of S3 bucket (default: %(default)s)', default=configure.S3_BUCKET_NAME)
-        parser.add_argument('--local-path', dest='local_path', type=str, metavar='LOCAL PATH', required=True,
-                            help="The local path for file recovery.")
-        parser.add_argument('--remote-path', dest='remote_path', type=str, metavar='REMOTE PATH', required=True,
-                            help="The remote path for downloading the file.")
+        parser.add_argument('--local-parallels_home_path', dest='local_path', type=str, metavar='LOCAL PATH',
+                            required=True,
+                            help="The local parallels_home_path for file recovery.")
+        parser.add_argument('--remote-parallels_home_path', dest='remote_path', type=str, metavar='REMOTE PATH',
+                            required=True,
+                            help="The remote parallels_home_path for downloading the file.")
 
         args = parser.parse_args()
 

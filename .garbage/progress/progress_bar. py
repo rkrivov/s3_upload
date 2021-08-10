@@ -5,7 +5,7 @@ from typing import Union, Optional
 
 from common.consts import CLEAR_TO_END_LINE
 from common.convertors import time_to_short_string, size_to_human, speed_to_mbps
-from common.utils import show_message, get_parameter, get_terminal_width, inscribe_message
+from common.functions import show_message, get_parameter, get_terminal_width, inscribe_message
 
 
 class ProgressBar(object):

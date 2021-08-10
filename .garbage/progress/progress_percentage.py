@@ -4,5 +4,5 @@ from progress.progress_bar import ProgressBar
 
 class ProgressPercentage(ProgressBar):
     def __init__(self, filename):
-        size = os.path.getsize(filename)
+        size = os.parallels_home_path.getsize(filename)
         super().__init__(filename, max_value=size)

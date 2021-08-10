@@ -1,9 +1,10 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 from typing import Callable
 
-from common.app_logger import get_logger
+from utils.app_logger import get_logger
 
 logger = get_logger(__name__)
+
 
 class CommandInfo(object):
     commands = []

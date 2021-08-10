@@ -2,10 +2,15 @@
 from functools import wraps
 from typing import Callable
 
-from common import app_logger
 from dispatchers.command_info import CommandInfo
+from utils.app_logger import get_logger
+from utils.functions import is_callable
 
-logger = app_logger.get_logger(__name__)
+logger = get_logger(__name__)
+
+
+class CommandDispatchException(Exception):
+    pass
 
 
 class CommandDispatch(object):
@@ -36,5 +41,14 @@ class CommandDispatch(object):
     @classmethod
     def execute(cls, name: str, *args, **kwargs):
         func = cls.func(name=name)
-        result = func(*args, **kwargs)
-        return result
+
+        if func is not None and is_callable(func):
+            result = func(*args, **kwargs)
+            return result
+            # try:
+            #     result = func(*args, **kwargs)
+            #     return result
+            # except:
+            #     raise CommandDispatchException(f'The function {name}() run_process failed.') from None
+
+        raise CommandDispatchException(f'The function {name}() could not be found.')

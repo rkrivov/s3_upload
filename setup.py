@@ -8,5 +8,5 @@ setup(
     license='',
     author='Roman N. Krivov',
     author_email='rn.krivov@inbox.ru',
-    description='Copy folder to S3 Objects Storage'
+    description='Backup copying and restoring Parallels Virtual Machines using S3 Storage'
 )

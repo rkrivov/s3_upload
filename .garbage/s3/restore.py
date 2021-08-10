@@ -4,8 +4,9 @@ from typing import Dict, Any, Optional
 
 from common.app_logger import get_logger
 from common.convertors import remove_start_path_sep, append_end_path_sep
-from common.utils import get_parameter
-from s3._base._base import S3Base, INFO_OLD, INFO_NEW, INFO_FIELD_NAME, OP_RESTORE
+from common.functions import get_parameter
+
+from s3.s3base.s3baseobject import S3Base, INFO_REMOTE, INFO_LOCAL, INFO_FIELD_NAME, OP_RESTORE
 
 logger = get_logger(__name__)
 
@@ -21,19 +22,19 @@ class S3Restore(S3Base):
             return files
         return super(S3Restore, self)._check_files(files)
 
-    def _process_pre(self):
+    def pre_process(self):
         return
 
-    def _process_post(self):
+    def post_process(self):
         return
 
-    def _compare_files(self, file_info_old: Dict[str, Any], file_info_new: Dict[str, Any]) -> Optional[str]:
+    def _compare_files(self, file_info_remote: Dict[str, Any], file_info_local: Dict[str, Any]) -> Optional[str]:
         if self.force:
             return OP_RESTORE
 
-        return super(S3Restore, self)._compare_files(file_info_old=file_info_old, file_info_new=file_info_new)
+        return super(S3Restore, self)._compare_files(file_info_remote=file_info_remote, file_info_local=file_info_local)
 
-    def _do_operation(self, files: Dict[str, Any]):
+    def operation(self, files: Dict[str, Any]):
         local_files = _get_local_files_list(files)
         local_files = [file_info.get(INFO_FIELD_NAME) for file_info in local_files]
 
@@ -42,11 +43,11 @@ class S3Restore(S3Base):
                 os.remove(local_file_name)
                 logger.info(f'The file {local_file_name} was deleted.')
 
-        files = [operation for _, operation in files.items() if operation.get(INFO_OLD, None) is not None]
+        files = [operation for _, operation in files.items() if operation.get(INFO_REMOTE, None) is not None]
 
         for operation in files:
-            local_file_info = operation.get(INFO_NEW)
-            remote_file_info = operation.get(INFO_OLD)
+            local_file_info = operation.get(INFO_LOCAL)
+            remote_file_info = operation.get(INFO_REMOTE)
 
             remote_file_name = remote_file_info.get('name')
 
@@ -67,9 +68,9 @@ class S3Restore(S3Base):
             logger.info(f'Download file {remote_file_name}...')
             self.storage.download_file(local_file_path=local_file_name, remote_file_path=remote_file_name)
 
-    def process(self, *args, **kwargs) -> None:
-        local_path = get_parameter(args=args, index=1, argument_type=str, throw_error=False)
-        remote_path = get_parameter(args=args, index=2, argument_type=str, throw_error=False)
+    def run_process(self, *args, **kwargs) -> None:
+        local_path = get_parameter(args=args, index=1, type=str, throw_error=False)
+        remote_path = get_parameter(args=args, index=2, type=str, throw_error=False)
 
         if local_path is None:
             local_path = kwargs.pop('local_path', None)
@@ -84,4 +85,4 @@ class S3Restore(S3Base):
         if remote_path is not None:
             self.set_archive_path(remote_path=remote_path)
 
-        super(S3Restore, self).process(*args, **kwargs)
+        super(S3Restore, self).run_process(*args, **kwargs)
