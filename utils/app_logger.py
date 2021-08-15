@@ -103,26 +103,26 @@ def get_logger(name: str):
     console_handler = DecorateStreamHandler()
     console_handler.setLevel(logging.INFO)
 
-    exp_info_file_handler = RotatingFileHandler('{}info.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
-                                                backupCount=consts.MAX_LOG_BACKUP_COUNT)
-    exp_info_file_handler.setLevel(logging.INFO)
-    exp_info_file_handler.addFilter(CustomFilterOnlyFor(level=logging.INFO))
-    exp_info_file_handler.setFormatter(Formatter(LOG_FILE_FMT))
+    # exp_info_file_handler = RotatingFileHandler('{}info.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
+    #                                             backupCount=consts.MAX_LOG_BACKUP_COUNT)
+    # exp_info_file_handler.setLevel(logging.INFO)
+    # exp_info_file_handler.addFilter(CustomFilterOnlyFor(level=logging.INFO))
+    # exp_info_file_handler.setFormatter(Formatter(LOG_FILE_FMT))
 
     exp_debug_file_handler = RotatingFileHandler('{}debug.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
                                                  backupCount=consts.MAX_LOG_BACKUP_COUNT)
     exp_debug_file_handler.setLevel(logging.DEBUG)
-    exp_debug_file_handler.addFilter(CustomFilterOnlyFor(level=logging.DEBUG))
+    # exp_debug_file_handler.addFilter(CustomFilterOnlyFor(level=logging.DEBUG))
     exp_debug_file_handler.setFormatter(Formatter(LOG_FILE_FMT))
 
     exp_errors_file_handler = RotatingFileHandler('{}errors.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
                                                   backupCount=consts.MAX_LOG_BACKUP_COUNT)
     exp_errors_file_handler.setLevel(logging.WARNING)
-    exp_errors_file_handler.addFilter(CustomFilter())
+    # exp_errors_file_handler.addFilter(CustomFilter())
     exp_errors_file_handler.setFormatter(Formatter(LOG_FILE_FMT))
 
     logger.addHandler(console_handler)
-    logger.addHandler(exp_info_file_handler)
+    # logger.addHandler(exp_info_file_handler)
     logger.addHandler(exp_debug_file_handler)
     logger.addHandler(exp_errors_file_handler)
 

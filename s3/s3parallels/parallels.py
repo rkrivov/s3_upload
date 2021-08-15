@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 from string import Template
 from typing import Any, Optional, Dict, List, Text, Union, Tuple
 
-from s3.s3base.s3consts import VM_SNAPSHOT_DAYS_COUNT
+from s3.s3base.s3consts import VM_SNAPSHOT_DAYS_COUNT, VM_STATUS_RESET, VM_STATUS_RESTART, VM_STATUS_PAUSE, \
+    VM_STATUS_RESUME, VM_STATUS_START, VM_STATUS_STOP, VM_STATUS_SUSPEND
 from s3.s3base.s3typing import VirtualMachineID
 from s3.s3functions import convert_uuid_to_string, check_result
 from s3.s3parallels.errors import VMError, VMUnknownUUIDError
@@ -71,7 +72,7 @@ class Parallels(metaclass=MetaSingleton):
         elif isinstance(command, str):
             command_template_string = command
         else:
-            raise AttributeError('Command has incorrect type.')
+            raise AttributeError('Command has incorrect argument_type.')
 
         command_template_string = command_template_string.strip()
 
@@ -209,8 +210,15 @@ class Parallels(metaclass=MetaSingleton):
 
                         parallelsSnapshot.days = p_days
 
-                        logger.info(
+                        logger.debug(
                             f"Snapshot {snapshot_id} expire "
+                            f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
+                            f" ({parallelsSnapshot.days} {'days' if parallelsSnapshot.days > 1 else 'day'})"
+                        )
+
+                        print(
+                            f"Snapshot {snapshot_id} was created on {parallelsSnapshot.date.strftime('%Y-%m-%d %H:%M')} "
+                            f"and expire "
                             f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
                             f" ({parallelsSnapshot.days} {'days' if parallelsSnapshot.days > 1 else 'day'})"
                         )
@@ -315,34 +323,6 @@ class Parallels(metaclass=MetaSingleton):
     #     finally:
     #         self._notify('We finished unarchiving VM.', virtual_machine_id)
 
-    def pause_virtual_machine(self, virtual_machine_id: VirtualMachineID):
-        self._notify('We begin to pause VM...', virtual_machine_id)
-        try:
-            self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status='pause')
-        finally:
-            self._notify('We finished pausing VM.', virtual_machine_id)
-
-    def reset_virtual_machine(self, virtual_machine_id: VirtualMachineID):
-        self._notify('We begin to reset VM...', virtual_machine_id)
-        try:
-            self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status='reset')
-        finally:
-            self._notify('We finished resetting VM.', virtual_machine_id)
-
-    def restart_virtual_machine(self, virtual_machine_id: VirtualMachineID):
-        self._notify('We begin to restart VM...', virtual_machine_id)
-        try:
-            self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status='restart')
-        finally:
-            self._notify('We finished restarting VM.', virtual_machine_id)
-
-    def resume_virtual_machine(self, virtual_machine_id: VirtualMachineID):
-        self._notify(f'We begin to resume VM...', virtual_machine_id)
-        try:
-            self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status='resume')
-        finally:
-            self._notify(f'We finished resuming VM.', virtual_machine_id)
-
     def switch_snapshot(self, virtual_machine_id: VirtualMachineID, snapshot_id: str, skip_resume: bool = False):
         switch_snapshot_command = 'snapshot-switch $virtual_machine_id --id $snapshot_id'
 
@@ -352,26 +332,33 @@ class Parallels(metaclass=MetaSingleton):
         self._execute_parallels_command(switch_snapshot_command, vm_uuid=convert_uuid_to_string(virtual_machine_id),
                                         snapshot_id=snapshot_id)
 
+    def pause_virtual_machine(self, virtual_machine_id: VirtualMachineID):
+        self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status=VM_STATUS_PAUSE)
+        self._notify('VM was paused.', virtual_machine_id)
+
+    def reset_virtual_machine(self, virtual_machine_id: VirtualMachineID):
+        self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status=VM_STATUS_RESET)
+        self._notify('VM was reset.', virtual_machine_id)
+
+    def restart_virtual_machine(self, virtual_machine_id: VirtualMachineID):
+        self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status=VM_STATUS_RESTART)
+        self._notify('VM was restated.', virtual_machine_id)
+
+    def resume_virtual_machine(self, virtual_machine_id: VirtualMachineID):
+        self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status=VM_STATUS_RESUME)
+        self._notify(f'VM was resumed.', virtual_machine_id)
+
     def start_virtual_machine(self, virtual_machine_id: VirtualMachineID):
-        self._notify('We begin to start VM...', virtual_machine_id)
-        try:
-            self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status='start')
-        finally:
-            self._notify('We finished starting VM.', virtual_machine_id)
+        self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status=VM_STATUS_START)
+        self._notify('VM was  started.', virtual_machine_id)
 
     def stop_virtual_machine(self, virtual_machine_id: VirtualMachineID):
-        self._notify('We begin to stop VM...', virtual_machine_id)
-        try:
-            self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status='stop')
-        finally:
-            self._notify('We finished stopping VM.', virtual_machine_id)
+        self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status=VM_STATUS_STOP)
+        self._notify('VM was stopped.', virtual_machine_id)
 
     def suspend_virtual_machine(self, virtual_machine_id: VirtualMachineID):
-        self._notify('We begin to suspend...', virtual_machine_id)
-        try:
-            self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status='suspend')
-        finally:
-            self._notify('We finished suspending VM.', virtual_machine_id)
+        self.set_virtual_machine_status(virtual_machine_id=virtual_machine_id, status=VM_STATUS_SUSPEND)
+        self._notify('VM was suspended.', virtual_machine_id)
 
     # def pack(self, virtual_machine_id: VirtualMachineID) -> None:
     #     self._notify('We begin to need_pack VM...', virtual_machine_id)

@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, Optional
 
 from s3.s3base.s3baseobject import OP_RESTORE
+from s3.s3parallels.objects.virtualmachine import ParallelsVirtualMachine
 from s3.s3parallels.operation import S3ParallelsOperation
 from utils.app_logger import get_logger
 from utils.convertors import remove_start_path_sep, append_end_path_sep
@@ -40,7 +41,7 @@ class S3ParallelsRestore(S3ParallelsOperation):
                                    remote_file_path=remote_file_name,
                                    show_progress=self.show_progress)
 
-    def operation(self, files: Dict[str, Any]):
+    def operation(self, files: Dict[str, Any], virtual_machine: Optional[ParallelsVirtualMachine] = None):
         raise NotImplementedError()
         # TODO Create recovery files from S3 storage
         # local_files_list = _get_local_files_list(files)

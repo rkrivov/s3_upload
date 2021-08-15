@@ -195,6 +195,9 @@ def run_command(*args, **kwargs) -> Any:
         output = ''
 
     if return_code != 0:
+        lines = output.split('\n')
+        if len(lines) > 0:
+            output = lines[-1]
         error_message = f"{output}"
 
         if len(error_message) == 0:
@@ -317,34 +320,41 @@ def find_uuid(value: str) -> Optional[str]:
 
 
 def get_parameter(args: Union[Tuple[Any], List[Any]],
-                  index: int,
-                  type: Union[Any, Union[Tuple[Any], List[Any]]] = None, throw_error: bool = True) -> Any:
-    if len(args) <= index:
-        if throw_error:
-            raise ValueError(f"Missing {index} required argument.")
-        else:
-            return None
+                  argument_index: int,
+                  argument_type: Union[Any, Union[Tuple[Any], List[Any]]] = None,
+                  throw_error: bool = True,
+                  default: Any = None) -> Any:
+    ret_value = default
 
-    if type is not None:
-        if not isinstance(args[index], type):
-            if throw_error:
-                if isinstance(type, (tuple, list)):
-                    types_list = ""
-                    for i in range(len(type)):
-                        if i == len(type) - 1:
-                            if len(types_list) > 0:
-                                types_list += " or "
-                        else:
-                            if len(types_list) > 0:
-                                types_list += ", "
-                            types_list += type[i].__name__
-                else:
-                    types_list = type.__name__
-                raise TypeError(f"{index} argument has incorrect type. The type must be {types_list}.")
+    if 0 <= argument_index < len(args):
+        value = args[argument_index]
+
+        if argument_type is not None:
+            if isinstance(value, argument_type):
+                ret_value = value
             else:
-                return None
+                if throw_error:
+                    if isinstance(argument_type, (tuple, list)):
+                        types_list = ""
+                        for i in range(len(argument_type)):
+                            if i == len(argument_type) - 1:
+                                if len(types_list) > 0:
+                                    types_list += " or "
+                            else:
+                                if len(types_list) > 0:
+                                    types_list += ", "
+                                types_list += argument_type[i].__name__
+                    else:
+                        types_list = argument_type.__name__
 
-    return args[index]
+                    raise TypeError(f"{argument_index} argument has incorrect argument_type. The argument_type must be {types_list}.")
+        else:
+            ret_value = value
+    else:
+        if throw_error:
+            raise ValueError(f"Index {argument_index} out of range (0..{len(args) - 1})..")
+
+    return ret_value
 
 
 # Print iterations progress

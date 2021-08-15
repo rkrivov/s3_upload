@@ -114,10 +114,7 @@ def main():
     except KeyboardInterrupt:
         logger.warning('User terminate program!')
     except Exception as exception:
-        logger.critical(
-            f"Exception {type(exception).__name__} with message \"{exception}\" is not caught",
-            exc_info=1
-        )
+        logger.exception(exception)
     finally:
         end_time = time.time()
         logger.info(

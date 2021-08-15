@@ -10,14 +10,14 @@ import psutil
 import pytz
 from dateutil import tz
 
+from s3.s3parallels.objects.virtualmachine import ParallelsVirtualMachine
 from s3.s3storage import S3Storage
 from utils import consts
 from utils.app_logger import get_logger
+from utils.arguments import Arguments
 from utils.convertors import remove_end_path_sep, make_template_from_string, size_to_human, encode_string, \
-    append_end_path_sep, append_start_path_sep, convert_value_to_type, \
-    make_string_from_template, get_string_case, remove_start_path_sep
+    make_string_from_template, get_string_case
 from utils.files import get_file_size, get_file_etag, calc_file_hash
-from utils.functions import print_progress_bar, get_terminal_width
 from utils.metasingleton import MetaSingleton
 
 logger = get_logger(__name__)
@@ -115,9 +115,6 @@ class S3Base(metaclass=MetaSingleton):
     def __del__(self):
         pass
 
-    def __call__(self, *args, **kwargs):
-        self.run_process(*args, **kwargs)
-
     @property
     def bucket(self):
         return self._bucket_name
@@ -208,6 +205,13 @@ class S3Base(metaclass=MetaSingleton):
             logger.debug(
                 f"Calculate hash {consts.MD5_ENCODER_NAME.upper()} "
                 f"for {make_template_from_string(file_path, **templates)}"
+                f" ({size_to_human(get_file_size(file_name=file_path))})"
+            )
+
+            print(
+                f"Calculate hash {consts.MD5_ENCODER_NAME.upper()} "
+                f"for {make_template_from_string(file_path, **templates)}"
+                f" ({size_to_human(get_file_size(file_name=file_path))})"
             )
 
             if get_file_size(file_name=file_path) > consts.FILE_SIZE_LIMIT:
@@ -226,7 +230,7 @@ class S3Base(metaclass=MetaSingleton):
         if file_info_local is not None or file_info_remote is not None:
 
             if file_info_remote is not None and file_info_local is not None:
-                messages = []
+                # messages = []
 
                 file_name_new = file_info_local.get(INFO_FIELD_NAME)
                 file_size_new = file_info_local.get(INFO_FIELD_SIZE, 0)
@@ -244,22 +248,22 @@ class S3Base(metaclass=MetaSingleton):
                 if file_mtime_old == file_mtime_new:
                     return None
 
-                messages.append(
-                    "The size of the remote file "
-                    f"({consts.CYAN + consts.BOLD}{size_to_human(file_size_old)}{consts.NBOLD + consts.DEF})"
-                    " differs from the size of the local file "
-                    f"({consts.CYAN + consts.BOLD}{size_to_human(file_size_new)}{consts.NBOLD + consts.DEF})"
-                )
+                # messages.append(
+                #     "The size of the remote file "
+                #     f"({consts.CYAN + consts.BOLD}{size_to_human(file_size_old)}{consts.NBOLD + consts.DEF})"
+                #     " differs from the size of the local file "
+                #     f"({consts.CYAN + consts.BOLD}{size_to_human(file_size_new)}{consts.NBOLD + consts.DEF})"
+                # )
 
                 if file_size_old == file_size_new:
                     return None
 
-                messages.append(
-                    f"The time when the remote file was last modified "
-                    f"({consts.CYAN + consts.BOLD}{file_mtime_old}{consts.NBOLD + consts.DEF})"
-                    " differs from the time when the local file was last modified "
-                    f"({consts.CYAN + consts.BOLD}{file_mtime_new}{consts.NBOLD + consts.DEF})"
-                )
+                # messages.append(
+                #     f"The time when the remote file was last modified "
+                #     f"({consts.CYAN + consts.BOLD}{file_mtime_old}{consts.NBOLD + consts.DEF})"
+                #     " differs from the time when the local file was last modified "
+                #     f"({consts.CYAN + consts.BOLD}{file_mtime_new}{consts.NBOLD + consts.DEF})"
+                # )
 
                 if file_hash_new == '':
                     local_file_name = self._make_local_file(file_name_new)
@@ -269,21 +273,21 @@ class S3Base(metaclass=MetaSingleton):
                 if file_hash_old == file_hash_new:
                     return None
 
-                messages.append(
-                    f"The ETag of the remote file "
-                    f"({consts.CYAN + consts.BOLD}{file_hash_old}{consts.NBOLD + consts.DEF})"
-                    " differs from the ETag of the local file "
-                    f"({consts.CYAN + consts.BOLD}{file_hash_new}{consts.NBOLD + consts.DEF})"
-                )
+                # messages.append(
+                #     f"The ETag of the remote file "
+                #     f"({consts.CYAN + consts.BOLD}{file_hash_old}{consts.NBOLD + consts.DEF})"
+                #     " differs from the ETag of the local file "
+                #     f"({consts.CYAN + consts.BOLD}{file_hash_new}{consts.NBOLD + consts.DEF})"
+                # )
 
-                for ix, value in enumerate(messages):
-                    if ix == 0:
-                        value = value[0].upper() + value[1:]
-                    else:
-                        value = value[0].lower() + value[1:]
-                    messages[ix] = value
+                # for ix, value in enumerate(messages):
+                #     if ix == 0:
+                #         value = value[0].upper() + value[1:]
+                #     else:
+                #         value = value[0].lower() + value[1:]
+                #     messages[ix] = value
 
-                message = ', and '.join(messages)
+                # message = ', and '.join(messages)
 
                 # logger.warning(
                 #     "The file "
@@ -324,118 +328,118 @@ class S3Base(metaclass=MetaSingleton):
     def fetch_files(self) -> Dict[str, Any]:
         files = {}
 
-        files = self._fetch_local_files_list(operations_list=files)
-        files = self._fetch_remote_files_list(operations_list=files)
+        files = self._fetch_remote_files_list(remote_path=self._archive_path, operations=files)
+        files = self._fetch_local_files_list(local_path=self._local_path, operations=files)
 
         return files
 
-    def _fetch_local_files_list(self, local_path: str = None,
-                                operations_list: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _fetch_local_files_list(self, local_path: str = None, operations: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        pass
+        #
+        # if local_path is None:
+        #     local_path = self._local_path
+        #
+        # if operations_list is None:
+        #     operations_list = {}
+        #
+        # if os.path.isfile(local_path):
+        #     local_file_name = local_path
+        #     self._local_path = os.path.dirname(local_file_name)
+        #
+        #     name = local_file_name
+        #
+        #     if name.startswith(local_path):
+        #         name = name[len(local_path):]
+        #         name = append_start_path_sep(name)
+        #
+        #     name_hash = get_name_hash(name)
+        #
+        #     file_info = get_file_info(file=local_file_name)
+        #
+        #     operation_info = operators.setdefault(name_hash, {})
+        #     operation_info[INFO_LOCAL] = file_info
+        #     operation_info[INFO_OP] = OP_INSERT
+        # else:
+        #     for root, dirs, files in os.walk(self._local_path):
+        #         for file in files:
+        #             if not file.startswith('.') and not file.startswith('~'):
+        #                 local_file_path = os.path.join(
+        #                     append_end_path_sep(root),
+        #                     remove_start_path_sep(file)
+        #                 )
+        #
+        #                 name = local_file_path
+        #
+        #                 if name.startswith(local_path):
+        #                     name = name[len(local_path):]
+        #                     name = append_start_path_sep(name)
+        #
+        #                 name_hash = get_name_hash(name)
+        #
+        #                 file_info = get_file_info(file=local_file_path)
+        #
+        #                 operation_info = operators.setdefault(name_hash, {})
+        #                 operation_info[INFO_LOCAL] = file_info
+        #                 operation_info[INFO_OP] = OP_INSERT
+        #
+        # return operators
 
-        if local_path is None:
-            local_path = self._local_path
-
-        if operations_list is None:
-            operations_list = {}
-
-        if os.path.isfile(local_path):
-            local_file_name = local_path
-            self._local_path = os.path.dirname(local_file_name)
-
-            name = local_file_name
-
-            if name.startswith(local_path):
-                name = name[len(local_path):]
-                name = append_start_path_sep(name)
-
-            name_hash = get_name_hash(name)
-
-            file_info = get_file_info(file=local_file_name)
-
-            operation_info = operations_list.setdefault(name_hash, {})
-            operation_info[INFO_LOCAL] = file_info
-            operation_info[INFO_OP] = OP_INSERT
-        else:
-            for root, dirs, files in os.walk(self._local_path):
-                for file in files:
-                    if not file.startswith('.') and not file.startswith('~'):
-                        local_file_path = os.path.join(
-                            append_end_path_sep(root),
-                            remove_start_path_sep(file)
-                        )
-
-                        name = local_file_path
-
-                        if name.startswith(local_path):
-                            name = name[len(local_path):]
-                            name = append_start_path_sep(name)
-
-                        name_hash = get_name_hash(name)
-
-                        file_info = get_file_info(file=local_file_path)
-
-                        operation_info = operations_list.setdefault(name_hash, {})
-                        operation_info[INFO_LOCAL] = file_info
-                        operation_info[INFO_OP] = OP_INSERT
-
-        return operations_list
-
-    def _fetch_remote_files_list(self, remote_path: str = None,
-                                 operations_list: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-
-        if remote_path is None:
-            remote_path = self._archive_path
-
-        if operations_list is None:
-            operations_list = {}
-
-        prefix = append_end_path_sep(remote_path)
-        objects_count = self.storage.get_objects_count(prefix=prefix)
-
-        if objects_count > 0:
-            completed_objects_count = 0
-
-            for remote_object in self.storage.fetch_bucket_objects(prefix=prefix):
-                if self.show_progress:
-                    completed_objects_count += 1
-                    print_progress_bar(iteration=completed_objects_count,
-                                       total=objects_count,
-                                       prefix='Fetching remote objects.py',
-                                       length=get_terminal_width())
-
-                file_name = convert_value_to_type(remote_object.get('Key', None), to_type=str)
-
-                name = file_name
-                if name.startswith(prefix):
-                    name = name[len(prefix):]
-                    name = append_start_path_sep(name)
-
-                name_hash = get_name_hash(name)
-
-                file_size = convert_value_to_type(remote_object.get('Size', None), to_type=int)
-                file_mtime = convert_value_to_type(remote_object.get('LastModified', None), to_type=datetime)
-                file_mtime = file_mtime.replace(tzinfo=pytz.UTC)
-                file_mtime = datetime.fromtimestamp(time.mktime(file_mtime.timetuple()))
-                file_hash = convert_value_to_type(remote_object.get('ETag', None), to_type=str)
-
-                if file_hash is not None:
-                    if file_hash.startswith('"'):
-                        file_hash = file_hash[1:]
-                    if file_hash.endswith('"'):
-                        file_hash = file_hash[:-1]
-
-                file_info = {
-                    INFO_FIELD_NAME: file_name,
-                    INFO_FIELD_SIZE: file_size,
-                    INFO_FIELD_MTIME: file_mtime,
-                    INFO_FIELD_HASH: file_hash
-                }
-
-                operation_info = operations_list.setdefault(name_hash, {})
-                operation_info[INFO_REMOTE] = file_info
-                operation_info[INFO_OP] = OP_DELETE
-
-        return operations_list
+    def _fetch_remote_files_list(self, remote_path: str = None, operations: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        pass
+        #
+        # if remote_path is None:
+        #     remote_path = self._archive_path
+        #
+        # if operators is None:
+        #     operators = {}
+        #
+        # prefix = append_end_path_sep(remote_path)
+        # objects_count = self.storage.get_objects_count(prefix=prefix)
+        #
+        # if objects_count > 0:
+        #     completed_objects_count = 0
+        #
+        #     for remote_object in self.storage.fetch_bucket_objects(prefix=prefix):
+        #         if self.show_progress:
+        #             completed_objects_count += 1
+        #             print_progress_bar(iteration=completed_objects_count,
+        #                                total=objects_count,
+        #                                prefix='Fetching remote objects',
+        #                                length=get_terminal_width())
+        #
+        #         file_name = convert_value_to_type(remote_object.get('Key', None), to_type=str)
+        #
+        #         name = file_name
+        #         if name.startswith(prefix):
+        #             name = name[len(prefix):]
+        #             name = append_start_path_sep(name)
+        #
+        #         name_hash = get_name_hash(name)
+        #
+        #         file_size = convert_value_to_type(remote_object.get('Size', None), to_type=int)
+        #         file_mtime = convert_value_to_type(remote_object.get('LastModified', None), to_type=datetime)
+        #         file_mtime = file_mtime.replace(tzinfo=pytz.UTC)
+        #         file_mtime = datetime.fromtimestamp(time.mktime(file_mtime.timetuple()))
+        #         file_hash = convert_value_to_type(remote_object.get('ETag', None), to_type=str)
+        #
+        #         if file_hash is not None:
+        #             if file_hash.startswith('"'):
+        #                 file_hash = file_hash[1:]
+        #             if file_hash.endswith('"'):
+        #                 file_hash = file_hash[:-1]
+        #
+        #         file_info = {
+        #             INFO_FIELD_NAME: file_name,
+        #             INFO_FIELD_SIZE: file_size,
+        #             INFO_FIELD_MTIME: file_mtime,
+        #             INFO_FIELD_HASH: file_hash
+        #         }
+        #
+        #         operation_info = operators.setdefault(name_hash, {})
+        #         operation_info[INFO_REMOTE] = file_info
+        #         operation_info[INFO_OP] = OP_DELETE
+        #
+        # return operators
 
     def _init_storage_control(self) -> S3Storage:
 
@@ -443,7 +447,7 @@ class S3Base(metaclass=MetaSingleton):
             delattr(self, '_storage')
 
         self._storage = S3Storage(bucket=self.bucket)
-
+        # self._storage = S3StorageZip(bucket=self.bucket)
         return self._storage
 
     def _make_local_file(self, file_name: str) -> str:
@@ -452,14 +456,16 @@ class S3Base(metaclass=MetaSingleton):
     def _make_remote_file(self, file_name: str) -> str:
         return make_string_from_template(file_name, path=remove_end_path_sep(self._archive_path))
 
-    def operation(self, files: Dict[str, Any]):
+    def operation(self, files: Dict[str, Any], virtual_machine: Optional[ParallelsVirtualMachine] = None):
         pass
 
     def process(self):
-        files = {}
+        # files = {}
 
-        files = self._fetch_remote_files_list(operations_list=files)
-        files = self._fetch_local_files_list(operations_list=files)
+        # files = self._fetch_remote_files_list(operations_list=files)
+        # files = self._fetch_local_files_list(operations_list=files)
+
+        files = self.fetch_files()
 
         if len(files) > 0:
             files = self._check_files(files)
@@ -545,7 +551,8 @@ class S3Base(metaclass=MetaSingleton):
         self._delete_removed = kwargs.pop('delete_removed', False)
 
     def execute(self, *args, **kwargs) -> None:
-        self._update_parameters()
+        argsuments = Arguments(*args, **kwargs)
+        self._update_parameters(**kwargs)
         self.pre_process()
         try:
             self.process()
@@ -567,5 +574,5 @@ class S3Base(metaclass=MetaSingleton):
     @classmethod
     def get_instance(cls, *args, **kwargs):
         if not hasattr(cls, 'instance'):
-            cls.instance = super(S3Base, cls).__new__()
+            cls.instance = super(S3Base, cls).__new__(*args, **kwargs)
         return cls.instance

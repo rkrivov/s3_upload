@@ -21,11 +21,10 @@ def client_exception_handler(skip_codes: Optional[Union[Tuple[str], List[str]]] 
                 return result
             except ClientError as clientError:
                 logger.debug(f"Exception: {clientError}")
-                if skip_codes is None:
-                    raise
+                logger.exception(clientError)
                 error = clientError.response.get('Error', {})
                 error_code = error.get('Code', 'Unknown')
-                if error_code not in skip_codes:
+                if skip_codes is None or error_code not in skip_codes:
                     raise clientError from None
             return None
 

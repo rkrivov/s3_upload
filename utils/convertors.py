@@ -5,6 +5,7 @@ import math
 import os
 import re
 from datetime import datetime
+from string import Template
 from typing import Union, Type, Optional, Any
 
 from utils import consts
@@ -417,7 +418,7 @@ def convert_string_to_statement(text: Union[bytes, str]) -> str:
 
 def convert_value_to_string(value: Any) -> str:
     """
-    Convert any type value to string
+    Convert any argument_type value to string
     """
     result = ''
 
@@ -567,13 +568,13 @@ def make_template_from_string(*args, **kwargs) -> str:
     }
 
     for name, value in kwargs.items():
-        template_values[name] = value
+        template_values[name.upper()] = value
 
     for name, value in template_values.items():
         if value in ret:
             index = ret.index(value)
             length = len(value)
-            ret = ret[:index] + '%' + name + '%' + ret[index + length:]
+            ret = ret[:index] + '${' + name.upper() + '}' + ret[index + length:]
 
     return ret
 
@@ -591,10 +592,15 @@ def make_string_from_template(*args, **kwargs) -> str:
     }
 
     for name, value in kwargs.items():
-        name = '%' + name.upper() + '%'
-        template_values[name] = value
+        template_values[name.upper()] = value
 
-    ret = re.sub(r"(%\w+%)", lambda m: template_values.get(m.group(0).upper()), ret, flags=re.IGNORECASE)
+    # ret = re.sub(r"(%\w+%)", lambda m: template_values.get(m.group(0).upper()), ret, flags=re.IGNORECASE)
+    pattern = r'(' + re.escape('${') + r'\w+' + re.escape('}') +')'
+
+    ret = re.sub(pattern, lambda m: m.group(0).upper(), ret, flags=re.IGNORECASE)
+
+    template_string = Template(ret)
+    ret = template_string.safe_substitute(template_values)
 
     return ret
 
@@ -627,8 +633,26 @@ def time_to_short_string(time_value: Union[int, float]) -> str:
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = (seconds % 3600) % 60
+    days = hours % 24
+    hours = hours % 24
 
-    if hours > 0:
+    if days > 0:
+        if days == 1:
+            ret = 'one day'
+        else:
+            ret = f'{days} days'
+
+        f = hours / 24.0
+
+        if f > 0.0:
+            if f >= 0.5:
+                if (days + 1) > 1:
+                    ret = f'about {int(days + 1)} days'
+                else:
+                    ret = 'about one day'
+            else:
+                ret = f'over {ret}'
+    elif hours > 0:
         if hours == 1:
             ret = 'one hour'
         else:

@@ -289,6 +289,35 @@ class SQLBuilder(object):
         return result
 
     @staticmethod
+    def operator_not_in(value: str, values: Union[List[Any], Tuple[Any]], use_brackets: bool = False) -> str:
+        parameters = ', '.join(['?' for _ in values])
+        parameters = f"({parameters})"
+        result = f"{value} IN {parameters}"
+
+        if use_brackets:
+            result = f"({result})"
+
+        return result
+
+    @staticmethod
+    def operator_is(value_1: str, value_2: str, use_brackets: bool = False) -> str:
+        result = f"{value_1} IS {value_2}"
+
+        if use_brackets:
+            result = f"({result})"
+
+        return result
+
+    @staticmethod
+    def operator_is_not(value_1: str, value_2: str, use_brackets: bool = False) -> str:
+        result = f"{value_1} IS NOT {value_2}"
+
+        if use_brackets:
+            result = f"({result})"
+
+        return result
+
+    @staticmethod
     def operator_equal(value1: str, value2: str, use_brackets: bool = False) -> str:
         return SQLBuilder.operator(value1, '=', value2, use_brackets=use_brackets)
 
@@ -444,13 +473,13 @@ class DBField(object):
 
         if field_type is None:
             if field_value is None:
-                raise AttributeError(f'The field can\'t have None in the field type and field value')
+                raise AttributeError(f'The field can\'t have None in the field argument_type and field value')
             if isinstance(field_value, (list, tuple)):
                 first_value_type = type(field_value[0])
                 for idx in range(len(field_value)):
                     if not isinstance(field_value[idx], first_value_type):
                         raise AttributeError(f'Incorrect {type(field_value[idx]).__name__}. Item {idx} don\'t have '
-                                             f'type {first_value_type.__name__}')
+                                             f'argument_type {first_value_type.__name__}')
 
             field_type = type(field_value)
 
@@ -475,16 +504,16 @@ class DBField(object):
         if not isinstance(value, self.__field_type):
             if isinstance(value, (list, tuple)):
                 if len(value) == 0:
-                    raise ValueError(f"Incorrent value type. Value has type {type(value).__name__}, "
+                    raise ValueError(f"Incorrent value argument_type. Value has argument_type {type(value).__name__}, "
                                      f"but need {self.__field_type.__name__}")
                 for v in value:
                     if not isinstance(v, self.__field_type):
                         raise ValueError(
-                            f"Incorrent value type. Value has type {type(v).__name__}, "
+                            f"Incorrent value argument_type. Value has argument_type {type(v).__name__}, "
                             f"but need {self.__field_type.__name__}")
             else:
                 raise ValueError(
-                    f"Incorrent value type. Value has type {type(value).__name__}, "
+                    f"Incorrent value argument_type. Value has argument_type {type(value).__name__}, "
                     f"but need {self.__field_type.__name__}")
 
         self.__field_value = value
@@ -644,6 +673,7 @@ class DBManager(metaclass=MetaSingleton):
         self._database_name = name
         self._check_same_thread = check_same_thread
         self._isolation_level = isolation_level
+        self._callback_tracebacks_enabled = False
 
         backup_file_name = self._database_name
         backup_file_path = os.path.dirname(backup_file_name)
@@ -674,6 +704,15 @@ class DBManager(metaclass=MetaSingleton):
         return self._database_name
 
     @property
+    def callback_tracebacks_enabled(self) -> bool:
+        return self._callback_tracebacks_enabled
+
+    @callback_tracebacks_enabled.setter
+    def callback_tracebacks_enabled(self, value: bool):
+        self._callback_tracebacks_enabled = value
+        sqlite3.enable_callback_tracebacks(value)
+
+    @property
     def is_new_database(self) -> bool:
         return self._is_new_database
 
@@ -683,7 +722,8 @@ class DBManager(metaclass=MetaSingleton):
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
     def create_connection(self) -> DBConnection:
-        sqlite3.enable_callback_tracebacks(True)
+        # sqlite3.enable_callback_tracebacks(True)
+        self.callback_tracebacks_enabled = True
 
         if not os.path.exists(os.path.dirname(self._database_name)):
             os.makedirs(os.path.dirname(self._database_name))
@@ -751,7 +791,6 @@ class DBManager(metaclass=MetaSingleton):
 
         try:
             if cursor is not None:
-                logger.debug(f"Prepare query {statement}.")
                 if parameters is None:
                     cursor.execute(statement)
                 else:
@@ -770,7 +809,7 @@ class DBManager(metaclass=MetaSingleton):
         Any, DBRecord]:
         """
         Execute statement 'statement' with parameters ''parameters'.
-        Parameters maybe None or any type.
+        Parameters maybe None or any argument_type.
         The return all the records.
         """
         with Closer(self.prepare_query(statement, parameters)) as cursor:
@@ -785,7 +824,7 @@ class DBManager(metaclass=MetaSingleton):
         DBRecord]:
         """
         Execute statement 'statement' with parameters ''parameters'.
-        Parameters may be None or any type.
+        Parameters may be None or any argument_type.
         The return the one record.
         """
         record = None
@@ -801,7 +840,7 @@ class DBManager(metaclass=MetaSingleton):
         """
         Execute update statement 'statement' with parameters ''parameters'.
         Commit transaction and return True if success. Otherwise rollback transaction end return False.
-        Parameters maybe None or any type.
+        Parameters maybe None or any argument_type.
         """
 
         try:
@@ -902,7 +941,7 @@ class DBManagerThreaded(DBManager):
 
         Execute update statement 'statement' with parameters ''parameters'.
         Commit transaction and return True if success. Otherwise rollback transaction end return false.
-        Parameters mayby None or any type.
+        Parameters mayby None or any argument_type.
         """
 
         with self.databaseLock:
