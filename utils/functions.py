@@ -248,16 +248,20 @@ def show_error(message: Union[str, bytes], end: str = '') -> None:
     if isinstance(message, bytes):
         message = message.decode(consts.ENCODER)
     print(str(message), end=end)
-    # sys.stderr.write(message + end)
-    # sys.stderr.flush()
+
+
+# sys.stderr.write(message + end)
+# sys.stderr.flush()
 
 
 def show_message(message: Union[str, bytes], end: str = '') -> None:
     if isinstance(message, bytes):
         message = message.decode(consts.ENCODER)
     print(str(message), end=end)
-    # sys.stdout.write(message + end)
-    # sys.stdout.flush()
+
+
+# sys.stdout.write(message + end)
+# sys.stdout.flush()
 
 
 def retry(retry_on_exception: Callable[[Exception], bool] = None,
@@ -347,7 +351,8 @@ def get_parameter(args: Union[Tuple[Any], List[Any]],
                     else:
                         types_list = argument_type.__name__
 
-                    raise TypeError(f"{argument_index} argument has incorrect argument_type. The argument_type must be {types_list}.")
+                    raise TypeError(
+                        f"{argument_index} argument has incorrect argument_type. The argument_type must be {types_list}.")
         else:
             ret_value = value
     else:

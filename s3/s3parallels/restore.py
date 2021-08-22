@@ -43,16 +43,16 @@ class S3ParallelsRestore(S3ParallelsOperation):
 
     def operation(self, files: Dict[str, Any], virtual_machine: Optional[ParallelsVirtualMachine] = None):
         raise NotImplementedError()
-        # TODO Create recovery files from S3 storage
-        # local_files_list = _get_local_files_list(files)
-        # local_files_list = [info.get(INFO_FIELD_NAME) for info in local_files_list]
-        #
-        # for local_file in local_files_list:
-        #     if os.path.exists(local_file):
-        #         os.remove(local_file)
-        #
-        # for _, operation_info in files:
-        #     local_file = operation_info.get(INFO_LOCAL)
-        #     remote_file = operation_info.get(INFO_REMOTE)
-        #
-        #     self._do_file_operation(local_file_info=local_file, remote_file_info=remote_file)
+    # TODO Create recovery files from S3 storage
+    # local_files_list = _get_local_files_list(files)
+    # local_files_list = [info.get(INFO_FIELD_NAME) for info in local_files_list]
+    #
+    # for local_file in local_files_list:
+    #     if os.path.exists(local_file):
+    #         os.remove(local_file)
+    #
+    # for _, operation_info in files:
+    #     local_file = operation_info.get(INFO_LOCAL)
+    #     remote_file = operation_info.get(INFO_REMOTE)
+    #
+    #     self._do_file_operation(local_file_info=local_file, remote_file_info=remote_file)

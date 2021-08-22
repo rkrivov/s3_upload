@@ -1,6 +1,7 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 
 import argparse
+import asyncio
 import time
 import uuid
 from argparse import Namespace
@@ -41,6 +42,7 @@ def do_restore_vm(*args, **kwargs):
     S3ParallelsRestore.start(*args, **kwargs)
 
 
+# async def main():
 def main():
     start_time = time.time()
 
@@ -78,16 +80,6 @@ def main():
                             action='store_true',
                             help='Delete removed files from S3 Storage Bucket.')
 
-        # parser.add_argument('--archive',
-        #                     dest='archive', default=argparse.SUPPRESS,
-        #                     action='store_true',
-        #                     help='Archiving Virtual Machine before backup.')
-
-        # parser.add_argument('--pack',
-        #                     dest='pack', default=argparse.SUPPRESS,
-        #                     action='store_true',
-        #                     help='Packing Virtual Machine before backup')
-
         args: Namespace = parser.parse_args()
 
         kwargs = {
@@ -98,7 +90,7 @@ def main():
         if 'archive' in args:
             kwargs.update(archive=True)
 
-        if'force' in args:
+        if 'force' in args:
             kwargs.update(force=True)
 
         if 'pack' in args:
@@ -123,4 +115,5 @@ def main():
 
 
 if __name__ == '__main__':
+    # asyncio.run(main())
     main()

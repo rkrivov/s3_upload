@@ -38,7 +38,8 @@ class S3StorageZip(S3Storage):
                 Bucket=self._bucket,
                 Key=f"{key}.gz",
                 Config=self._upload_onfig,
-                Callback=ProgressBar(caption='File upload process', total=compressed_file_size) if show_progress else None
+                Callback=ProgressBar(caption='File upload process',
+                                     total=compressed_file_size) if show_progress else None
             )
 
     def upload_file(self, local_file_path: str, remote_file_path: str, /, **kwargs) -> None:

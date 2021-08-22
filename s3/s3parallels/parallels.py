@@ -66,7 +66,7 @@ class Parallels(metaclass=MetaSingleton):
                title=f'VM {vm_name}' if vm_name != vm_id_s else 'Parallels Virtual Machine',
                subtitle=vm_id_s)
 
-    def _execute_parallels_command(self, command: Union[str, List[str], Tuple[str, str]], /,  **kwargs) -> Any:
+    def _execute_parallels_command(self, command: Union[str, List[str], Tuple[str, str]], /, **kwargs) -> Any:
         if isinstance(command, list) or isinstance(command, tuple):
             command_template_string = ' '.join(command)
         elif isinstance(command, str):
@@ -127,7 +127,7 @@ class Parallels(metaclass=MetaSingleton):
         if len(description) == 0:
             description = f'This snapshot for {virtual_machine_name} was created on {currenr_snapshot_date.strftime("%Y-%m-%d %H:%M:%S")}'
 
-        logger.info(f'Create virtual_machine_snapshot "{name}" for VM {virtual_machine_name} ({virtual_machine_id})...')
+        logger.info(f'Create snapshot "{name}" for VM {virtual_machine_name} ({virtual_machine_id})...')
 
         result = self._execute_parallels_command(
             'snapshot $uuid --name "$name" --description "$description"',
@@ -151,7 +151,9 @@ class Parallels(metaclass=MetaSingleton):
     def delete_snapshot(self, virtual_machine_id: VirtualMachineID, snapshot_id: str, delete_child: bool = False):
         virtual_machine_name = self.get_virtual_machine_name(virtual_machine_id=virtual_machine_id)
 
-        logger.info(f'Delete virtual_machine_snapshot {snapshot_id} from VM {virtual_machine_name} ({virtual_machine_id})')
+        logger.info(
+            f'Delete snapshot {snapshot_id} from VM {virtual_machine_name} ({virtual_machine_id})'
+        )
 
         delete_command = ['snapshot-delete', '$uuid', '--id $snapshot_id']
 
@@ -210,13 +212,13 @@ class Parallels(metaclass=MetaSingleton):
 
                         parallelsSnapshot.days = p_days
 
-                        logger.debug(
-                            f"Snapshot {snapshot_id} expire "
-                            f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
-                            f" ({parallelsSnapshot.days} {'days' if parallelsSnapshot.days > 1 else 'day'})"
-                        )
+                        # logger.debug(
+                        #     f"Snapshot {snapshot_id} expire "
+                        #     f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
+                        #     f" ({parallelsSnapshot.days} {'days' if parallelsSnapshot.days > 1 else 'day'})"
+                        # )
 
-                        print(
+                        logger.info(
                             f"Snapshot {snapshot_id} was created on {parallelsSnapshot.date.strftime('%Y-%m-%d %H:%M')} "
                             f"and expire "
                             f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
@@ -288,7 +290,8 @@ class Parallels(metaclass=MetaSingleton):
 
         return ret
 
-    def get_virtual_machine_iter(self, virtual_machine_id_list: Optional[List[VirtualMachineID]] = None) -> ParallelsVirtualMachine:
+    def get_virtual_machine_iter(self, virtual_machine_id_list: Optional[
+        List[VirtualMachineID]] = None) -> ParallelsVirtualMachine:
         if virtual_machine_id_list is None:
             virtual_machine_id_list = []
 

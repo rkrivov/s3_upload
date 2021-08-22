@@ -21,7 +21,7 @@ LOG_CONSOLE_FMT = "[%(levelname)s]: %(message)s"
 
 class DecorateStreamHandler(logging.StreamHandler):
     def __init__(self, stream=None):
-        class DecorageFormatter(logging.Formatter):
+        class DecorateFormatter(logging.Formatter):
 
             def __init__(self, fmt=None, datefmt=None, style='%', validate=True):
                 super().__init__(fmt=fmt, datefmt=datefmt, style=style, validate=validate)
@@ -30,10 +30,10 @@ class DecorateStreamHandler(logging.StreamHandler):
                         consts.DGRAY + consts.BOLD,
                         consts.NBOLD + consts.DEF
                     ),
-                    logging.getLevelName(logging.INFO): (
-                        consts.CYAN + consts.BOLD,
-                        consts.NBOLD + consts.DEF
-                    ),
+                    # logging.getLevelName(logging.INFO): (
+                    #     consts.CYAN + consts.BOLD,
+                    #     consts.NBOLD + consts.DEF
+                    # ),
                     logging.getLevelName(logging.WARNING): (
                         consts.YELLOW + consts.BOLD,
                         consts.NBOLD + consts.DEF
@@ -55,21 +55,23 @@ class DecorateStreamHandler(logging.StreamHandler):
             def format(self, record: logging.LogRecord):
                 msg = super().format(record)
 
-                msg = re.sub(r"(Except(ion)?)\s+(\w+)\s*\:\s*(.*)$",
-                             consts.RED + r"\1" " " + consts.BOLD + r"\3" + consts.NBOLD + consts.DEF +
-                             ": " +
-                             consts.BLACK + r"\4" + consts.DEF,
-                             msg, flags=re.I or re.X)
+                # msg = re.sub(r"(Except(ion)?)\s+(\w+)\s*\:\s*(.*)$",
+                #              consts.RED + r"\1" " " + consts.BOLD + r"\3" + consts.NBOLD + consts.DEF +
+                #              ": " +
+                #              consts.BLACK + r"\4" + consts.DEF,
+                #              msg, flags=re.I or re.X)
+                #
+                # if record.levelname in self._colors:
+                #     color_begin, color_end = self._colors[record.levelname]
+                #     msg = color_begin + record.levelname + color_end + ': ' + msg
 
-                if record.levelname in self._colors:
-                    color_begin, color_end = self._colors[record.levelname]
-                    msg = color_begin + record.levelname + color_end + ': ' + msg
+                # return '\r' + msg
 
-                return '\r' + msg
+                return msg
 
         super().__init__(stream=stream)
 
-        self.setFormatter(DecorageFormatter())
+        self.setFormatter(DecorateFormatter())
 
 
 class CustomFilter(logging.Filter):
@@ -87,7 +89,7 @@ class CustomFilterOnlyFor(CustomFilter):
         return False
 
 
-def get_logger(name: str):
+def get_logger(name: str) -> logging.Logger:
     current_date = datetime.now()
 
     log_dir = os.path.dirname(sys.argv[0])
@@ -102,6 +104,7 @@ def get_logger(name: str):
 
     console_handler = DecorateStreamHandler()
     console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(Formatter(LOG_CONSOLE_FMT))
 
     # exp_info_file_handler = RotatingFileHandler('{}info.log'.format(log_dir), maxBytes=consts.MAX_FILE_LOG_SIZE,
     #                                             backupCount=consts.MAX_LOG_BACKUP_COUNT)

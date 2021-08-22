@@ -517,10 +517,13 @@ def time_to_string(time_value: Union[int, float], use_milliseconds: bool = False
 
         if days > 0:
             time_parts.append(f'{days} day{"s" if days > 1 else ""}')
+
         if hours > 0:
             time_parts.append(f'{hours} hour{"s" if hours > 1 else ""}')
+
         if minutes > 0:
             time_parts.append(f'{minutes} minute{"s" if minutes > 1 else ""}')
+
         if seconds > 0:
             time_parts.append(f'{seconds} second{"s" if seconds > 1 else ""}')
 
@@ -595,7 +598,7 @@ def make_string_from_template(*args, **kwargs) -> str:
         template_values[name.upper()] = value
 
     # ret = re.sub(r"(%\w+%)", lambda m: template_values.get(m.group(0).upper()), ret, flags=re.IGNORECASE)
-    pattern = r'(' + re.escape('${') + r'\w+' + re.escape('}') +')'
+    pattern = r'(' + re.escape('${') + r'\w+' + re.escape('}') + ')'
 
     ret = re.sub(pattern, lambda m: m.group(0).upper(), ret, flags=re.IGNORECASE)
 
@@ -633,7 +636,7 @@ def time_to_short_string(time_value: Union[int, float]) -> str:
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = (seconds % 3600) % 60
-    days = hours % 24
+    days = hours // 24
     hours = hours % 24
 
     if days > 0:

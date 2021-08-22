@@ -3,6 +3,7 @@ import asyncio
 import json
 import os
 import time
+
 from datetime import datetime
 from typing import Optional, Dict, Any, Text
 from uuid import UUID
@@ -25,14 +26,14 @@ from utils import consts
 from utils import dbase
 from utils.app_logger import get_logger
 from utils.asyncobject import AsyncObjectHandler
+from utils.closer import Closer
 from utils.convertors import append_end_path_sep, \
     remove_start_path_sep, convert_value_to_type, \
     decode_string, encode_string, remove_end_path_sep, time_to_short_string, make_template_from_string, \
     make_string_from_template, time_to_string
 from utils.dbase import SQLBuilder
 from utils.files import calc_file_hash
-from utils.files_multi_threads import ScanFolder
-from utils.functions import print_progress_bar, get_parameter, is_equal
+from utils.functions import print_progress_bar, get_parameter, is_equal, get_string
 
 logger = get_logger(__name__)
 
@@ -58,7 +59,6 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
     FIELD_ID = 'id'
     FIELD_UUID = 'uuid'
     FIELD_CONFIG = 'config'
-
 
     FILES_CACHE_TABLE = 'files_cache'
     FIELD_FILE_NAME = 'file_name'
@@ -99,8 +99,6 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
     def __init__(self, bucket: str, **kwargs):
         self._database = dbase.create_database(name=S3ParallelsOperation.DATABASE)
         self._database.execute_script(S3ParallelsOperation.SCRIPT)
-        self._scan_folder = ScanFolder()
-        self._scan_folder.daemon = True
 
         self._force = kwargs.pop('force', False)
         self._need_archive = kwargs.pop('archive', False)
@@ -120,7 +118,8 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
         if self._need_archive and self._need_pack:
             raise Exception(f"{type(self).__name__} initialize failure: you need to use either packing or archiving")
 
-        super(S3ParallelsOperation, self).__init__(bucket=bucket)
+        S3Base.__init__(self, bucket=bucket)
+        AsyncObjectHandler.__init__(self)
 
     def __del__(self):
         # if self._main_event_loop.is_running():
@@ -131,7 +130,8 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             if self._database is not None:
                 del self._database
 
-        super(S3ParallelsOperation, self).__del__()
+        AsyncObjectHandler.__del__(self)
+        S3Base.__del__(self)
 
     @property
     def parallels(self) -> Parallels:
@@ -139,7 +139,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             self._parallels = None
 
         if self._parallels is None:
-            self._init_parallels_object()
+            self._parallels = self._init_parallels_object()
 
         return self._parallels
 
@@ -156,7 +156,8 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
     def vm_uuid(self, value: UUID):
         self._vm_uuid = value
 
-    def _is_exists(self, file_info: Dict[str, Any]) -> bool:
+    @staticmethod
+    def _is_exists(file_info: Dict[str, Any]) -> bool:
         builder = SQLBuilder()
 
         builder.set_statement_select(
@@ -173,11 +174,15 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             )
         )
 
-        record = self._database.execute_once(builder.make_select_statement(), file_info.get(INFO_FIELD_NAME))
+        try:
+            with Closer(dbase.create_database(S3ParallelsOperation.DATABASE)) as database:
+                record = database.execute_once(builder.make_select_statement(), file_info.get(INFO_FIELD_NAME))
 
-        if record is not None:
-            if record.first.value == file_info.get(INFO_FIELD_NAME):
-                return True
+                if record is not None:
+                    if record.first.value == file_info.get(INFO_FIELD_NAME):
+                        return True
+        except Exception as exception:
+            logger.exception("Exception: {}".format(get_string(exception)))
 
         return False
 
@@ -188,7 +193,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
         self._update_file_in_dbase(file_info=file_info)
 
     async def _delete_file_from_dbase_async(self, file_info: Dict[str, Any]):
-        self._insert_file_to_dbase(file_info=file_info)
+        self._delete_file_from_dbase(file_info=file_info)
 
     def _insert_file_to_dbase(self, file_info: Dict[str, Any]):
         if self._is_exists(file_info=file_info):
@@ -205,7 +210,8 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
         values_list = ['?'] * len(fields_list)
 
-        builder.set_statement_insert(SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE), ', '.join(fields_list))
+        builder.set_statement_insert(SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE),
+                                     ', '.join(fields_list))
         builder.set_statement_values(', '.join(values_list))
 
         values = [
@@ -215,8 +221,13 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             file_info.get(INFO_FIELD_HASH),
         ]
 
-        inserted_files = self._database.execute_update(builder.make_insert_statement(), tuple(values))
-        self._inserted_new_files += inserted_files
+        try:
+            with Closer(dbase.create_database(S3ParallelsOperation.DATABASE)) as database_object:
+                inserted_files = database_object.execute_update(builder.make_insert_statement(), tuple(values))
+                self._inserted_new_files += inserted_files
+        except Exception as exception:
+            logger.exception("Error inserting file information: {}".format(get_string(exception)))
+            raise exception from None
 
     def _update_file_in_dbase(self, file_info: Dict[str, Any]):
         if not self._is_exists(file_info=file_info):
@@ -249,8 +260,13 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             file_info.get(INFO_FIELD_NAME)
         ]
 
-        updated_files = self._database.execute_update(builder.make_update_statement(), tuple(values))
-        self._updated_files += updated_files
+        try:
+            with Closer(dbase.create_database(S3ParallelsOperation.DATABASE)) as database_object:
+                updated_files = database_object.execute_update(builder.make_update_statement(), tuple(values))
+                self._updated_files += updated_files
+        except Exception as exception:
+            logger.exception("Error updating file information: {}".format(get_string(exception)))
+            raise exception from None
 
     def _delete_file_from_dbase(self, file_info: Dict[str, Any]):
         if not self._is_exists(file_info=file_info):
@@ -265,8 +281,14 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             )
         )
 
-        deleted_files = self._database.execute_update(builder.make_delete_statement(), [file_info.get(INFO_FIELD_NAME)])
-        self._deleted_files += deleted_files
+        try:
+            with Closer(dbase.create_database(S3ParallelsOperation.DATABASE)) as database_object:
+                deleted_files = database_object.execute_update(builder.make_delete_statement(),
+                                                               [file_info.get(INFO_FIELD_NAME)])
+                self._deleted_files += deleted_files
+        except Exception as exception:
+            logger.exception("Error deleting file information: {}".format(get_string(exception)))
+            raise exception from None
 
     def _fetch_local_files_list(self, local_path: str = None,
                                 operations: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -325,7 +347,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
                             file_size_local = file_info.get(INFO_FIELD_SIZE, 0)
 
                             file_mtime_remote = file_info_remote.get(INFO_FIELD_MTIME, datetime.min)
-                            file_mtime_local = file_info.get(INFO_FIELD_MTIME,datetime.min)
+                            file_mtime_local = file_info.get(INFO_FIELD_MTIME, datetime.min)
 
                             if not is_equal(file_size_remote, file_size_local) and \
                                     not is_equal(file_mtime_remote, file_mtime_local):
@@ -368,7 +390,8 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
         values_list = ['?'] * len(fields_list)
 
-        builder.set_statement_insert(SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE), ', '.join(fields_list))
+        builder.set_statement_insert(SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE),
+                                     ', '.join(fields_list))
         builder.set_statement_values(', '.join(values_list))
 
         prefix = append_end_path_sep(remote_path)
@@ -396,7 +419,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
                 if file_hash is not None:
                     file_hash = remote_brackets(file_hash, '"')
-                files_to_insert.append((file_name, file_size, file_mtime, file_hash, ))
+                files_to_insert.append((file_name, file_size, file_mtime, file_hash,))
 
             if len(files_to_insert):
                 self._database.execute_update(builder.make_insert_statement(), files_to_insert)
@@ -448,9 +471,10 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
         return operations
 
-    def _init_parallels_object(self) -> Parallels:
-        self._parallels = Parallels()
-        return self._parallels
+    @staticmethod
+    def _init_parallels_object() -> Parallels:
+        parallels = Parallels()
+        return parallels
 
     def _copy_to_archive(self):
         for fetched_object in self.storage.fetch_bucket_objects(prefix=self._archive_path):
@@ -581,16 +605,17 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             self.parallels.resume_virtual_machine(virtual_machine_id=virtual_machine_id)
             del self._suspended[virtual_machine_id]
 
-    def suspend_virtual_machine(self, viirtual_machine_id: VirtualMachineID):
-        status = self.parallels.get_virtual_machine_status(virtual_machine_id=viirtual_machine_id)
+    def suspend_virtual_machine(self, virtual_machine_id: VirtualMachineID):
+        status = self.parallels.get_virtual_machine_status(virtual_machine_id=virtual_machine_id)
         if status in [VM_STATUS_RUNNING, VM_STATUS_PAUSED]:
-            self.parallels.suspend_virtual_machine(virtual_machine_id=viirtual_machine_id)
-            self._suspended[viirtual_machine_id] = True
+            self.parallels.suspend_virtual_machine(virtual_machine_id=virtual_machine_id)
+            self._suspended[virtual_machine_id] = True
 
     def update_snapshots(self, virtual_machine_id: VirtualMachineID):
         snapshot_list = self.parallels.get_snapshot_list(virtual_machine_id=virtual_machine_id)
 
-        old_spanshot_list = [snapshot_id for snapshot_id, snapshot in snapshot_list if snapshot.days >= VM_SNAPSHOT_DAYS_COUNT]
+        old_spanshot_list = [snapshot_id for snapshot_id, snapshot in snapshot_list if
+                             snapshot.days >= VM_SNAPSHOT_DAYS_COUNT]
 
         if len(old_spanshot_list) > 0:
             for old_snapshot_id in old_spanshot_list:
@@ -685,19 +710,21 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
     def _init_cache(self):
         start_time = time.time()
         try:
-            self._scan_folder(folder=self._local_path)
-            self._scan_folder.wait()
+            from utils.files_multi_threads import scan_folder_async
 
-            if not hasattr(self, '_hash_cache'):
-                self._hash_cache = {}
+            future = asyncio.ensure_future(scan_folder_async(self._local_path, loop=self.main_loop))
+            result = self.main_loop.run_until_complete(future=future)
 
-            self._hash_cache.clear()
+            if result is not None:
+                files_hash = result
+                self._hash_cache.clear()
 
-            for file_name, _ in self._scan_folder.files_list.items():
-                self._hash_cache[file_name] = self._scan_folder.get_hash(file_name)
+                for file_name, file_hash in files_hash.items():
+                    self._hash_cache[file_name] = file_hash
 
         finally:
-            print(f"Elapsed is {time_to_string(time.time() - start_time, human=True)} ({len(self._hash_cache)} file(s))")
+            logger.info(
+                f"Elapsed is {time_to_string(time.time() - start_time, human=True)} ({len(self._hash_cache)} file(s))")
 
     def _process_with_virtual_machine(self, virtual_machine: ParallelsVirtualMachine) -> None:
         self._init_path(virtual_machine=virtual_machine)
@@ -734,7 +761,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
         if self._check_virtual_machine(virtual_machine_id=virtual_machine_id):
 
-            self.suspend_virtual_machine(viirtual_machine_id=virtual_machine_id)
+            self.suspend_virtual_machine(virtual_machine_id=virtual_machine_id)
             try:
                 virtual_machine_id = virtual_machine.id
                 virtual_machine_type = virtual_machine.type
@@ -780,8 +807,8 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             file_name = record.field(S3ParallelsOperation.FIELD_FILE_NAME).value
             local_file_name = make_string_from_template(file_name, path=remove_end_path_sep(self._local_path))
             if os.path.exists(local_file_name):
-                hash = calc_file_hash(file_object=local_file_name, hash_name='sha512', show_progress=self.show_progress)
-                files_for_update.append(tuple([hash, file_name]))
+                file_hash = calc_file_hash(file_object=local_file_name, hash_name='sha512', show_progress=self.show_progress)
+                files_for_update.append(tuple([file_hash, file_name]))
 
         if len(files_for_update) > 0:
             builder.reset()
@@ -806,47 +833,48 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             )
 
             self._database.execute_update(builder.make_update_statement(), files_for_update)
-        # builder = SQLBuilder()
-        #
-        # builder.set_statement_select(
-        #     SQLBuilder.field(field_name=S3ParallelsOperation.FIELD_FILE_NAME)
-        # )
-        #
-        # builder.set_statement_from(
-        #     SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE)
-        # )
-        #
-        # file_names = []
-        #
-        # for record in self._database.execute(builder.make_select_statement()):
-        #     file_names.append(record.field(S3ParallelsOperation.FIELD_FILE_NAME).value)
-        #
-        # file_names_for_update = []
-        #
-        # for file_name in file_names:
-        #     updated_file_name = re.sub(r"(%(\w+)%)", lambda m: "${" + m.group(2).upper() + "}", file_name, flags=re.IGNORECASE)
-        #     if not is_equal(updated_file_name, file_name):
-        #         file_names_for_update.append((updated_file_name, file_name, ))
-        #
-        # if len(file_names_for_update) > 0:
-        #     builder.reset()
-        #
-        #     builder.set_statement_update(
-        #         SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE)
-        #     )
-        #     builder.set_statement_settings(
-        #         SQLBuilder.operator_equal_with_parameter(
-        #             SQLBuilder.field(field_name=S3ParallelsOperation.FIELD_FILE_NAME)
-        #         )
-        #     )
-        #
-        #     builder.set_statement_where(
-        #         SQLBuilder.operator_equal_with_parameter(
-        #             SQLBuilder.field(field_name=S3ParallelsOperation.FIELD_FILE_NAME)
-        #         )
-        #     )
-        #
-        #     self._database.execute_update(builder.make_update_statement(), file_names_for_update)
+
+    # builder = SQLBuilder()
+    #
+    # builder.set_statement_select(
+    #     SQLBuilder.field(field_name=S3ParallelsOperation.FIELD_FILE_NAME)
+    # )
+    #
+    # builder.set_statement_from(
+    #     SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE)
+    # )
+    #
+    # file_names = []
+    #
+    # for record in self._database.execute(builder.make_select_statement()):
+    #     file_names.append(record.field(S3ParallelsOperation.FIELD_FILE_NAME).value)
+    #
+    # file_names_for_update = []
+    #
+    # for file_name in file_names:
+    #     updated_file_name = re.sub(r"(%(\w+)%)", lambda m: "${" + m.group(2).upper() + "}", file_name, flags=re.IGNORECASE)
+    #     if not is_equal(updated_file_name, file_name):
+    #         file_names_for_update.append((updated_file_name, file_name, ))
+    #
+    # if len(file_names_for_update) > 0:
+    #     builder.reset()
+    #
+    #     builder.set_statement_update(
+    #         SQLBuilder.table(table_name=S3ParallelsOperation.FILES_CACHE_TABLE)
+    #     )
+    #     builder.set_statement_settings(
+    #         SQLBuilder.operator_equal_with_parameter(
+    #             SQLBuilder.field(field_name=S3ParallelsOperation.FIELD_FILE_NAME)
+    #         )
+    #     )
+    #
+    #     builder.set_statement_where(
+    #         SQLBuilder.operator_equal_with_parameter(
+    #             SQLBuilder.field(field_name=S3ParallelsOperation.FIELD_FILE_NAME)
+    #         )
+    #     )
+    #
+    #     self._database.execute_update(builder.make_update_statement(), file_names_for_update)
 
     def process(self):
         virtual_machine_id_list = []

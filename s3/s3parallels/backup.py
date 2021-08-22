@@ -1,12 +1,8 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
-import asyncio
 from datetime import datetime
-from functools import wraps
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional
 
-from dispatchers.command_dispatch import CommandDispatchException
-from dispatchers.command_info import CommandInfo
-from s3.s3base.s3baseobject import OP_BACKUP, INFO_FIELD_NAME, INFO_LOCAL, INFO_REMOTE, INFO_OP, \
+from s3.s3base.s3baseobject import INFO_FIELD_NAME, INFO_LOCAL, INFO_REMOTE, INFO_OP, \
     OP_DELETE, OP_UPDATE, OP_INSERT
 from s3.s3base.s3consts import VM_SNAPSHOT_DAYS_COUNT, VM_SNAPSHOT_COUNT
 from s3.s3base.s3typing import VirtualMachineID
@@ -17,7 +13,6 @@ from utils.app_logger import get_logger
 from utils.convertors import size_to_human, make_string_from_template, \
     remove_end_path_sep
 from utils.files import get_file_size
-from utils.functions import is_callable
 
 logger = get_logger(__name__)
 
@@ -73,10 +68,14 @@ class S3ParallelsBackupException(VMError):
 class S3ParallelsBackup(S3ParallelsOperation):
 
     def _compare_files(self, file_info_remote: Dict[str, Any], file_info_local: Dict[str, Any]) -> Optional[str]:
-        if self.force:
-            return OP_BACKUP
-        return super(S3ParallelsBackup, self)._compare_files(file_info_remote, file_info_local)
-
+        if file_info_remote is not None and file_info_local is not None:
+            return OP_UPDATE
+        elif file_info_remote is None and file_info_local is not None:
+            return OP_INSERT
+        elif file_info_remote is not None and file_info_local is None and self.delete_removed:
+            return OP_DELETE
+        else:
+            return super(S3ParallelsBackup, self)._compare_files(file_info_remote, file_info_local)
 
     # @S3ParallelsBackupDispatch(name=OP_INSERT)
     async def _do_insert_file(self, **kwargs):
@@ -96,7 +95,7 @@ class S3ParallelsBackup(S3ParallelsOperation):
         remote_file_name = make_string_from_template(remote_file_name, path=remove_end_path_sep(self._archive_path))
 
         logger.info(f"Upload new file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
-        await self.storage.upload_file_async(local_file_name, remote_file_name, show_progress=False)
+        await self.storage.upload_file_async(local_file_name, remote_file_name, show_progress=self.show_progress)
         await self._insert_file_to_dbase_async(file_info=local_file_info)
         logger.info(f"File {remote_file_name} ({size_to_human(get_file_size(local_file_name))}) was uploaded.")
 
@@ -123,9 +122,9 @@ class S3ParallelsBackup(S3ParallelsOperation):
         remote_file_name = make_string_from_template(remote_file_name, path=remove_end_path_sep(self._archive_path))
 
         logger.info(f"Upload changed file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
-        print(f"Upload changed file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
+        # print(f"Upload changed file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
 
-        await self.storage.upload_file_async(local_file_name, remote_file_name, show_progress=False)
+        await self.storage.upload_file_async(local_file_name, remote_file_name, show_progress=self.show_progress)
         await self._update_file_in_dbase_async(file_info=local_file_info)
         logger.info(f"File {remote_file_name} ({size_to_human(get_file_size(local_file_name))}) was uploaded.")
 
@@ -159,7 +158,8 @@ class S3ParallelsBackup(S3ParallelsOperation):
             if operation_id == OP_INSERT:
                 self.append_task_to_list(self._do_insert_file(local_file_info=local_file_info))
             elif operation_id == OP_UPDATE:
-                self.append_task_to_list(self._do_update_file(local_file_info=local_file_info, remote_file_info=remote_file_info))
+                self.append_task_to_list(
+                    self._do_update_file(local_file_info=local_file_info, remote_file_info=remote_file_info))
             elif operation_id == OP_DELETE:
                 self.append_task_to_list(self._do_delete_file(remote_file_info=remote_file_info))
         else:

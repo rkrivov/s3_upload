@@ -45,10 +45,10 @@ class CommandDispatch(object):
         if func is not None and is_callable(func):
             result = func(*args, **kwargs)
             return result
-            # try:
-            #     result = func(*args, **kwargs)
-            #     return result
-            # except:
-            #     raise CommandDispatchException(f'The function {name}() run_process failed.') from None
+        # try:
+        #     result = func(*args, **kwargs)
+        #     return result
+        # except:
+        #     raise CommandDispatchException(f'The function {name}() run_process failed.') from None
 
         raise CommandDispatchException(f'The function {name}() could not be found.')

@@ -7,7 +7,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
-from sqlite3 import ProgrammingError
+from sqlite3 import ProgrammingError, Cursor
 from typing import Any, Dict, List, Mapping, Optional, Text, Tuple, Type, Union
 
 from utils import consts
@@ -20,35 +20,35 @@ from utils.progress_bar import ProgressBar
 
 logger = get_logger(__name__)
 
-SQLITE_FIELD_ID: str = "id"
-SQLITE_FIELD_BUCKET: str = 'bucket_hash'
-SQLITE_FIELD_PATH: str = "file_path"
-SQLITE_FIELD_SIZE: str = "file_size"
-SQLITE_FIELD_MTIME: str = "last_modified"
-SQLITE_FIELD_HASH: str = "hash_md5"
-
-SQLITE_DATABASE_FILE = os.path.join(consts.WORK_FOLDER, 'operations_list.db')
-SQLITE_TABLE_NAME = "operations_list"
-
-CREATE_TABLE_SQL = f"""
-    --- The scipt was written {datetime.now()} by Eochaid Bres Drow
-
-    --- Create table {SQLITE_TABLE_NAME} ({datetime.now()})
-    CREATE TABLE {SQLITE_TABLE_NAME} (
-        {SQLITE_FIELD_ID} INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        {SQLITE_FIELD_BUCKET} TEXT NOT NULL,
-        {SQLITE_FIELD_PATH} TEXT,
-        {SQLITE_FIELD_SIZE} INTEGER,
-        {SQLITE_FIELD_MTIME} TIMESTAMP,
-        {SQLITE_FIELD_HASH} TEXT);
-
-    --- Create indexes for table {SQLITE_TABLE_NAME} ({datetime.now()})
-    CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_ID}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_ID});
-    CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_BUCKET}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_BUCKET});
-    CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_PATH}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_PATH});
-    CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_HASH}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_HASH});
-    CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_MTIME}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_MTIME});
-"""
+# SQLITE_FIELD_ID: str = "id"
+# SQLITE_FIELD_BUCKET: str = 'bucket_hash'
+# SQLITE_FIELD_PATH: str = "file_path"
+# SQLITE_FIELD_SIZE: str = "file_size"
+# SQLITE_FIELD_MTIME: str = "last_modified"
+# SQLITE_FIELD_HASH: str = "hash_md5"
+#
+# SQLITE_DATABASE_FILE = os.path.join(consts.WORK_FOLDER, 'operations_list.db')
+# SQLITE_TABLE_NAME = "operations_list"
+#
+# CREATE_TABLE_SQL = f"""
+#     --- The scipt was written {datetime.now()} by Eochaid Bres Drow
+#
+#     --- Create table {SQLITE_TABLE_NAME} ({datetime.now()})
+#     CREATE TABLE {SQLITE_TABLE_NAME} (
+#         {SQLITE_FIELD_ID} INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+#         {SQLITE_FIELD_BUCKET} TEXT NOT NULL,
+#         {SQLITE_FIELD_PATH} TEXT,
+#         {SQLITE_FIELD_SIZE} INTEGER,
+#         {SQLITE_FIELD_MTIME} TIMESTAMP,
+#         {SQLITE_FIELD_HASH} TEXT);
+#
+#     --- Create indexes for table {SQLITE_TABLE_NAME} ({datetime.now()})
+#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_ID}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_ID});
+#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_BUCKET}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_BUCKET});
+#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_PATH}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_PATH});
+#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_HASH}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_HASH});
+#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_MTIME}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_MTIME});
+# """
 
 
 def convert_datetime(val):
@@ -624,7 +624,7 @@ class DBCursor(sqlite3.Cursor):
 
 
 class DBConnection(sqlite3.Connection):
-    def cursor(self):
+    def cursor(self) -> DBCursor:
         return super(DBConnection, self).cursor(DBCursor)
 
 
@@ -664,12 +664,16 @@ def trace_callback(*args, **kwargs) -> Any:
 
 
 class DBManager(metaclass=MetaSingleton):
-    def __init__(self, name: str = SQLITE_DATABASE_FILE, check_same_thread: bool = False,
-                 isolation_level: str = "IMMEDIATE"):
+    TEMPORARY_DATABASE=':memory:'
+    ISOLATION_LEVEL_DEFERRED = 'DEFERRED'
+    ISOLATION_LEVEL_IMMEDIATE = 'IMMEDIATE'
+    ISOLATION_LEVEL_EXCLUSIVE = 'EXCLUSIVE'
+
+    def __init__(self, name: str = TEMPORARY_DATABASE, check_same_thread: bool = False,
+                 isolation_level: str = ISOLATION_LEVEL_IMMEDIATE):
         super().__init__()
 
-        self._connection = None
-        self._is_new_database = name.lower() == ':memory:' or not os.path.exists(name)
+        self._is_new_database = name.lower() == DBManager.TEMPORARY_DATABASE or not os.path.exists(name)
         self._database_name = name
         self._check_same_thread = check_same_thread
         self._isolation_level = isolation_level
@@ -695,8 +699,12 @@ class DBManager(metaclass=MetaSingleton):
 
     @property
     def connection(self) -> DBConnection:
+        if not hasattr(self, '_connection'):
+            self._connection = None
+
         if self._connection is None:
             self._connection = self.create_connection()
+
         return self._connection
 
     @property
@@ -711,6 +719,13 @@ class DBManager(metaclass=MetaSingleton):
     def callback_tracebacks_enabled(self, value: bool):
         self._callback_tracebacks_enabled = value
         sqlite3.enable_callback_tracebacks(value)
+
+    @property
+    def is_closed(self):
+        if hasattr(self, '_connection'):
+            return self._connection is None
+        else:
+            return True
 
     @property
     def is_new_database(self) -> bool:
@@ -744,18 +759,21 @@ class DBManager(metaclass=MetaSingleton):
         connection.row_factory = lambda cursor, row: {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
         connection.text_factory = lambda x: x.decode(consts.ENCODER)
         # dict_factory
+        self._is_closed = False
 
         return connection
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
     def close(self):
-        try:
-            if self._connection:
-                logger.debug(f"Close connection {os.path.basename(self._database_name)}...")
-                self._connection.close()
-        except Exception as ex:
-            logger.critical(f"Exception {type(ex).__name__} with message: {ex}")
-            raise
+        if hasattr(self, '_connection'):
+            try:
+                if self._connection:
+                    logger.debug(f"Close connection {os.path.basename(self._database_name)}...")
+                    self._connection.close()
+                    delattr(self, '_connection')
+            except Exception as ex:
+                logger.exception(ex)
+                raise
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
     def create_cursor(self) -> DBCursor:
@@ -766,13 +784,11 @@ class DBManager(metaclass=MetaSingleton):
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
     def commit(self):
-        if self._connection is not None:
-            logger.debug(f"{self._connection.in_transaction=}")
-            if self._connection.in_transaction:
-                logger.debug(
-                    f"Commit transaction on connection {os.path.basename(self._database_name)}..."
-                )
-                self._connection.commit()
+        if self.connection.in_transaction:
+            logger.debug(
+                f"Commit transaction on connection {os.path.basename(self._database_name)}..."
+            )
+            self.connection.commit()
 
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
     def rollback(self):
@@ -957,8 +973,10 @@ class DBManagerThreaded(DBManager):
 
 def create_database(name: str) -> DBManager:
     if threading.current_thread().ident != threading.main_thread().ident:
+        logger.debug(f"Use DBManagerThreaded({name})")
         return DBManagerThreaded(name=name)
     else:
+        logger.debug(f"Use DBManager({name})")
         return DBManager(name=name)
 
 
