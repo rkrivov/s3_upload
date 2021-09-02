@@ -11,7 +11,9 @@ from typing import Any, Dict, List, Optional, Union, Tuple
 import boto3
 import pytz
 from boto3.s3.transfer import TransferConfig
+from boto3.exceptions import Boto3Error
 from botocore.config import Config
+from botocore.exceptions import ClientError
 from dateutil import tz
 
 from config import configure
@@ -19,8 +21,11 @@ from s3.s3base.s3object import S3Object
 from s3.s3functions import client_exception_handler
 from utils import functions
 from utils.app_logger import get_logger
+from utils.arguments import Arguments
+from utils.asyncobject import AsyncObjectHandler
 from utils.consts import CPU_COUNT, FILE_SIZE_LIMIT, BUFFER_SIZE, MAX_CONCURRENCY, CLEAR_TO_END_LINE
-from utils.convertors import append_end_path_sep, remove_start_separator, size_to_human
+from utils.convertors import append_end_path_sep, remove_start_separator, size_to_human, make_template_from_string, \
+    remove_end_path_sep
 from utils.functions import show_message
 from utils.metasingleton import MetaSingleton
 from utils.progress_bar import ProgressBar
@@ -49,13 +54,16 @@ class S3RemoteFileNotFoundException(S3StorageException):
         super(S3RemoteFileNotFoundException, self).__init__(f'Remote file "{file_name}" could not be found.')
 
 
-class S3Storage(metaclass=MetaSingleton):
+class S3Storage(AsyncObjectHandler, metaclass=MetaSingleton):
 
     def __init__(self, bucket: Optional[str] = None):
+        logger.debug('-' * 4 + f" Constructor object {self.__class__.__name__}" + '-' * 40)
+        AsyncObjectHandler.__init__(self)
+
         self._lock = threading.Lock()
 
         try:
-            logger.info(f'Open S3 AWS Session...')
+            logger.debug(f'Open S3 AWS Session ' + '-' * 40)
             self._session = boto3.session.Session()
 
             aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID', None)
@@ -72,7 +80,7 @@ class S3Storage(metaclass=MetaSingleton):
                 }
             )
 
-            logger.info(f'Initialize S3 AWS client for {configure.S3_URL}...')
+            logger.debug(f'Initialize S3 AWS client for {configure.S3_URL}...')
             self._client = self._session.client(
                 service_name='s3',
                 endpoint_url=configure.S3_URL,
@@ -133,6 +141,13 @@ class S3Storage(metaclass=MetaSingleton):
             max_io_queue=CPU_COUNT * 4,
             use_threads=True
         )
+
+        logger.debug("Upload config: {!r}".format(str(self._upload_onfig)))
+        logger.debug("Download config: {!r}".format(str(self._download_config)))
+
+    def __del__(self):
+        AsyncObjectHandler.__del__(self)
+        logger.debug('-' * 4 + f" Destroyer object {self.__class__.__name__}" + '-' * 40)
 
     @client_exception_handler()
     def fetch_buckets_list(self) -> Optional[Dict[str, Any]]:
@@ -254,20 +269,17 @@ class S3Storage(metaclass=MetaSingleton):
         upload_id_check = {}
 
         attempt = 0
-        loop = None
 
         while True:
             if attempt == 100:
                 break
-
-            logger.info('-' * 4 + f" ATTEMPT # {(attempt + 1):04d} " + '-' * 40)
 
             multipart_list = self.get_multipart_list()
 
             if len(multipart_list) == 0:
                 break
 
-            tasks_list = []
+            logger.info('-' * 4 + f" ATTEMPT # {(attempt + 1):04d} " + '-' * 40)
 
             logger.info(f"{len(multipart_list)} part(s)")
 
@@ -287,22 +299,14 @@ class S3Storage(metaclass=MetaSingleton):
                     need_abort = True
 
                 if need_abort:
-                    if loop is None:
-                        loop = asyncio.get_event_loop()
-                        loop.set_debug(False)
-                    future = asyncio.ensure_future(
-                        self.abort_multipart_async(
+                    self.append_task_to_list(
+                        future=self.abort_multipart_async(
                             remote_file_path=key,
                             upload_id=upload_id
                         ),
-                        loop=loop
                     )
-                    tasks_list.append(future)
 
-            if len(tasks_list) > 0:
-                if loop is None:
-                    loop = asyncio.get_event_loop()
-                loop.run_until_complete(asyncio.wait(tasks_list))
+            self.run_tasks()
 
             timeout = random.randint(250, 750)
             timeout = float(timeout) / 1000.0
@@ -368,8 +372,11 @@ class S3Storage(metaclass=MetaSingleton):
         self._client.create_bucket(Bucket=bucket)
 
     async def get_object_async(self, remote_file_path: str, last_modified: datetime = None) -> Optional[S3Object]:
-        response = await self._client.get_object(Bucket=self._bucket, IfModifiedSince=last_modified,
-                                                 Key=remote_file_path)
+        response = self._client.get_object(
+            Bucket=self._bucket,
+            IfModifiedSince=last_modified,
+            Key=remote_file_path
+        )
 
         if response is None:
             return None
@@ -377,11 +384,12 @@ class S3Storage(metaclass=MetaSingleton):
         return S3Object(name=remote_file_path, response=response)
 
     @client_exception_handler(['304'])
-    def get_object(self, remote_file_path: str, last_modified: datetime = None) -> Optional[S3Object]:
-        if last_modified is not None:
-            response = self._client.get_object(Bucket=self._bucket, IfModifiedSince=last_modified, Key=remote_file_path)
-        else:
-            response = self._client.get_object(Bucket=self._bucket, Key=remote_file_path)
+    def get_object(self, remote_file_path: str, last_modified: Optional[datetime] = None) -> Optional[S3Object]:
+        response = self._client.get_object(
+            Bucket=self._bucket,
+            IfModifiedSince=last_modified,
+            Key=remote_file_path
+        )
 
         if response is None:
             return None
@@ -389,32 +397,45 @@ class S3Storage(metaclass=MetaSingleton):
         return S3Object(name=remote_file_path, response=response)
 
     async def delete_file_async(self, remote_file_path: str):
-        logger.debug(f'Delete object {remote_file_path} from {self._bucket}...')
-        self._client.delete_object(Bucket=self._bucket, Key=remote_file_path)
+        try:
+            self._client.delete_object(Bucket=self._bucket, Key=remote_file_path)
+        except ClientError as error:
+            logger.error(
+                f"Error uploading file {remote_file_path}: {str(error)}"
+            )
+        else:
+            logger.debug(
+                f'Object {remote_file_path} was deleted from {self._bucket}.'
+            )
 
     @client_exception_handler(('404',))
     def delete_file(self, remote_file_path: str):
-        logger.debug(f'Delete object {remote_file_path} from {self._bucket}...')
         self._client.delete_object(Bucket=self._bucket, Key=remote_file_path)
+        logger.debug(
+            f'Object {remote_file_path} was deleted from {self._bucket}.'
+        )
 
-    async def delete_objects_async(self, objects: Union[Tuple[Dict[str, str]], List[Dict[str, str]]],
-                                   quiet: bool = False):
-        delete_objects = {
-            'Objects': objects,
+    async def delete_objects_async(self, objects: Union[Tuple[Dict[str, str]], List[Dict[str, str]]], quiet: bool = False):
+        objects_for_delete = {
+            'Objects': list(objects),
             'Quiet': quiet
         }
 
-        response = await self._client.delete_objects(Bucket=self._bucket, Delete=delete_objects)
+        try:
+            response = self._client.delete_objects(Bucket=self._bucket, Delete=objects_for_delete)
 
-        if response is not None:
-            deleted_items = response.get('Deleted', [])
-            errors = response.get('Errors', [])
+            if response is not None:
+                deleted_items = response.get('Deleted', [])
+                errors = response.get('Errors', [])
 
-            for deleted_item in deleted_items:
-                logger.info(f'{deleted_item.get("Key", "Unknown object")} was deleted.')
+                for deleted_item in deleted_items:
+                    logger.info(f'{deleted_item.get("Key", "Unknown object")} was deleted.')
 
-            for error in errors:
-                logger.error(f'{error.get("Message")} ({error.get("Key")}).')
+                for error in errors:
+                    logger.error(f'{error.get("Message")} ({error.get("Key")}).')
+
+        except ClientError as error:
+            logger.error(f"Error deleting some objects: {str(error)}")
 
     @client_exception_handler(['404'])
     def delete_objects(self, objects: Union[Tuple[Dict[str, str]], List[Dict[str, str]]], quiet: bool = False):
@@ -443,12 +464,17 @@ class S3Storage(metaclass=MetaSingleton):
         content_length = file_info.get('ContentLength')
         content_length = int(content_length)
 
-        await self._client.download_file(
-            Bucket=self._bucket,
-            Key=remote_file_path,
-            Filename=local_file_path,
-            Config=self._download_config,
-            Callback=ProgressBar(caption='File download run_process', total=content_length) if show_progress else None)
+        try:
+            self._client.download_file(
+                Bucket=self._bucket,
+                Key=remote_file_path,
+                Filename=local_file_path,
+                Config=self._download_config,
+                Callback=ProgressBar(caption='File download run_process', total=content_length) if show_progress else None)
+        except ClientError as error:
+            logger.error(f"Error downloading file {remote_file_path}: {str(error)}.")
+        else:
+            logger.debug(f"File {remote_file_path} was downloaded")
 
     @client_exception_handler(['404'])
     def download_file(self, local_file_path: str, remote_file_path: str, /, **kwargs) -> None:
@@ -484,7 +510,10 @@ class S3Storage(metaclass=MetaSingleton):
 
     @client_exception_handler(['404'])
     def get_object_info(self, remote_file_path: str) -> Dict[str, Any]:
-        response = self._client.head_object(Bucket=self._bucket, Key=remote_file_path)
+        response = self._client.head_object(
+            Bucket=self._bucket,
+            Key=remote_file_path
+        )
 
         return response
 
@@ -544,7 +573,18 @@ class S3Storage(metaclass=MetaSingleton):
         return old_objects
 
     async def upload_file_async(self, local_file_path: str, remote_file_path: str, /, **kwargs) -> None:
+        callback = None
+
         show_progress: bool = kwargs.pop('show_progress', True)
+
+        if not show_progress:
+            if not hasattr(self, '_dummy_dict_'):
+                self._dummy_dict_ = {}
+
+            self._dummy_dict_[remote_file_path] = {
+                'iteration': 0,
+                'total': 0
+            }
 
         if not os.path.exists(local_file_path):
             raise S3LocalFileNotFoundException(file_name=local_file_path)
@@ -553,17 +593,62 @@ class S3Storage(metaclass=MetaSingleton):
             local_file_size = os.stat(local_file_path).st_size
             logger.debug(f'{local_file_size=}')
 
-            self._client.upload_file(
-                local_file_path,
-                self._bucket,
-                remote_file_path,
-                Config=self._upload_onfig,
-                ExtraArgs={'ACL': 'private', 'ContentType': 'gzip'},
-                Callback=ProgressBar(caption='File upload process', total=local_file_size) if show_progress else None
+            file_stat = os.stat(local_file_path, follow_symlinks=True)
+
+            logger.info(
+                f"Upload file {remote_file_path} ({size_to_human(file_stat.st_size)}) "
+                f"modified at {datetime.fromtimestamp(file_stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
-            logger.debug(
-                f'File {remote_file_path} ({size_to_human(local_file_size)}) upload completed {CLEAR_TO_END_LINE}')
+            if show_progress:
+                callback = ProgressBar(caption='File upload process', total=local_file_size)
+            else:
+                self._dummy_dict_[remote_file_path]['total'] = local_file_size
+
+                if not show_progress:
+                    def callback_dummy(*args, **kwargs):
+                        arguments = Arguments(*args, **kwargs)
+                        chuck_size = arguments.get(argument_type=(int, float,), throw_error=False, default=0)
+
+                        total = self._dummy_dict_[remote_file_path]['total']
+                        iteration = self._dummy_dict_[remote_file_path]['iteration']
+
+                        iteration += chuck_size
+
+                        self._dummy_dict_[remote_file_path]['iteration'] = iteration
+
+                        percent = float(iteration) / float(total) if total != 0 else 0
+
+                        logger.debug(
+                            f"{args=}, {kwargs=}"
+                        )
+
+                        logger.debug(
+                            f"{local_file_path} => {remote_file_path}"
+                            f" uploaded {size_to_human(iteration)}"
+                            f" from {size_to_human(total)} ({percent:0.4%})"
+                        )
+                    callback = callback_dummy
+
+            try:
+                self._client.upload_file(
+                    local_file_path,
+                    self._bucket,
+                    remote_file_path,
+                    Config=self._upload_onfig,
+                    ExtraArgs={'ACL': 'private', 'ContentType': 'gzip'},
+                    Callback=callback
+                )
+            except ClientError as error:
+                logger.error(f"Error uploading file {remote_file_path}: {str(error)}"
+                )
+            else:
+                logger.debug(
+                    f'File {remote_file_path} ({size_to_human(local_file_size)}) upload completed.'
+                )
+            finally:
+                if not show_progress:
+                    del self._dummy_dict_[remote_file_path]
         else:
             raise S3LocalIsNotFileException(file_name=local_file_path)
 
@@ -596,34 +681,18 @@ class S3Storage(metaclass=MetaSingleton):
     def upload(self, local_path: str, remote_path: str, /, **kwargs) -> None:
         show_progress: bool = kwargs.pop('show_progress', True)
 
-        if os.path.isfile(local_path):
-            self.upload_file(local_path, remote_path, show_progress=show_progress)
-        else:
-            for root, dirs, files in os.walk(local_path):
-                for file in files:
-                    if not file.startswith('.') and not file.startswith('~'):
-                        local_file_path = os.path.join(append_end_path_sep(root), file)
-                        remote_file_path = os.path.join(
-                            append_end_path_sep(remote_path),
-                            remove_start_separator(local_file_path[len(local_path):])
-                        )
-                        self.upload_file(local_file_path, remote_file_path, show_progress=show_progress)
+        if os.path.exists(local_path):
+            if os.path.isfile(local_path):
+                self.upload_file(local_path, remote_path, show_progress=show_progress)
+            else:
+                for root, dirs, files in os.walk(local_path):
+                    for file in files:
+                        if not file.startswith('.') and not file.startswith('~'):
+                            local_file_path = os.path.join(append_end_path_sep(root), file)
 
-        show_message('\r' + CLEAR_TO_END_LINE + '\r')
+                            file_name_template = make_template_from_string(local_file_path, path=remove_end_path_sep(local_path))
+                            remote_file_path = make_template_from_string(file_name_template, path=remove_end_path_sep(remote_path))
 
-    @client_exception_handler(['NotImplemented'])
-    def put_file_tagging(self, remote_file_path: str, tagging: Union[List[Dict[str, str]], Dict[str, str]]) -> Dict[
-        str, str]:
-        pass
-    # TODO Not implemented on the Mail.RU Business Cloud
-    # if not isinstance(tagging, list):
-    #     if isinstance(tagging, tuple):
-    #         tagging = list(tagging)
-    #     else:
-    #         tagging = [tagging]
-    # tagging = {'TagSet': tagging}
-    # logger.debug(f"{remote_file_path=}")
-    # logger.debug(f"{tagging=}")
-    #  response = self._client.put_object_tagging(Bucket=self._bucket, Key=remote_file_path, Tagging=tagging)
-    # logger.debug(f"{response=}")
-    # return response
+                            self.upload_file(local_file_path, remote_file_path, show_progress=show_progress)
+
+            show_message('\r' + CLEAR_TO_END_LINE + '\r')

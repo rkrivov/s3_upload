@@ -94,7 +94,7 @@ def get_logger(name: str) -> logging.Logger:
 
     log_dir = os.path.dirname(sys.argv[0])
     log_dir = append_end_path_sep(log_dir)
-    log_dir = os.path.join(log_dir, f'log/{current_date.strftime("%Y/%j/")}')
+    log_dir = os.path.join(log_dir, f'log/')
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)

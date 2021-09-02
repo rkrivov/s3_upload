@@ -20,36 +20,6 @@ from utils.progress_bar import ProgressBar
 
 logger = get_logger(__name__)
 
-# SQLITE_FIELD_ID: str = "id"
-# SQLITE_FIELD_BUCKET: str = 'bucket_hash'
-# SQLITE_FIELD_PATH: str = "file_path"
-# SQLITE_FIELD_SIZE: str = "file_size"
-# SQLITE_FIELD_MTIME: str = "last_modified"
-# SQLITE_FIELD_HASH: str = "hash_md5"
-#
-# SQLITE_DATABASE_FILE = os.path.join(consts.WORK_FOLDER, 'operations_list.db')
-# SQLITE_TABLE_NAME = "operations_list"
-#
-# CREATE_TABLE_SQL = f"""
-#     --- The scipt was written {datetime.now()} by Eochaid Bres Drow
-#
-#     --- Create table {SQLITE_TABLE_NAME} ({datetime.now()})
-#     CREATE TABLE {SQLITE_TABLE_NAME} (
-#         {SQLITE_FIELD_ID} INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-#         {SQLITE_FIELD_BUCKET} TEXT NOT NULL,
-#         {SQLITE_FIELD_PATH} TEXT,
-#         {SQLITE_FIELD_SIZE} INTEGER,
-#         {SQLITE_FIELD_MTIME} TIMESTAMP,
-#         {SQLITE_FIELD_HASH} TEXT);
-#
-#     --- Create indexes for table {SQLITE_TABLE_NAME} ({datetime.now()})
-#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_ID}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_ID});
-#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_BUCKET}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_BUCKET});
-#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_PATH}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_PATH});
-#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_HASH}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_HASH});
-#     CREATE INDEX {SQLITE_TABLE_NAME}_{SQLITE_FIELD_MTIME}_idx ON {SQLITE_TABLE_NAME} ({SQLITE_FIELD_MTIME});
-# """
-
 
 def convert_datetime(val):
     datepart, timepart = val.split(b" ")
@@ -65,8 +35,8 @@ def convert_datetime(val):
     return val
 
 
-# def _retry_if_exception(exception):
-#     return isinstance(exception, Exception) and not isinstance(exception, ProgrammingError)
+def _retry_if_exception(exception):
+    return isinstance(exception, Exception) and not isinstance(exception, ProgrammingError)
 
 
 def _append_string(string: str, value: str, first_string: str, separator: str = ',') -> str:
@@ -588,12 +558,22 @@ class DBRecord(object):
         return fields_list[1:]
 
     def put_field(self, *args, **kwargs):
+        types_list = kwargs.pop('types', None)
+
         for argument in args:
             if isinstance(argument, DBField):
                 self.__dict__[argument.name] = argument
             elif isinstance(argument, dict):
                 for key, value in argument.items():
-                    field = DBField(key, field_value=value)
+                    field_type = None
+
+                    if types_list is not None:
+                        field_type = types_list.get(key, None)
+
+                    if field_type is None:
+                        field_type = type(value) if value is not None else type('')
+
+                    field = DBField(key, field_type=field_type, field_value=value)
                     self.__dict__[field.name] = field
             else:
                 raise AttributeError(f"{argument} is not supported")
@@ -664,6 +644,8 @@ def trace_callback(*args, **kwargs) -> Any:
 
 
 class DBManager(metaclass=MetaSingleton):
+    _fields_info = {}
+
     TEMPORARY_DATABASE=':memory:'
     ISOLATION_LEVEL_DEFERRED = 'DEFERRED'
     ISOLATION_LEVEL_IMMEDIATE = 'IMMEDIATE'
@@ -735,6 +717,66 @@ class DBManager(metaclass=MetaSingleton):
     def is_modified(self) -> bool:
         return self._is_modified
 
+    def _load_schema(self):
+        def get_default_value(for_type: Type[Any]) -> Any:
+            if for_type == int:
+                return 0
+            if for_type == float:
+                return 0.00
+            if for_type == str:
+                return ''
+            return None
+
+
+        def get_type_by_name(type_name: Text) -> Type[Any]:
+            if type_name.lower() == 'text':
+                return Text
+            if type_name.lower() == 'integer':
+                return int
+            if type_name.lower() == 'real':
+                return float
+            if type_name.lower() == 'timespamp':
+                return float
+            return type(None)
+
+        if not hasattr(self, '_fields_info'):
+            self._fields_info = {}
+
+        if len(self._fields_info) == 0:
+            tables_list = []
+            statement = "select NAME from SQLITE_MASTER where TYPE='table' order by NAME"
+
+            try:
+                for row in self.connection.execute(statement):
+                    tables_list.append(row['name'])
+            except Exception as ex:
+                logger.error(ex)
+
+            try:
+                for table_name in tables_list:
+                    statement = "pragma table_info('{}')".format(table_name)
+                    for row in self.connection.execute(statement):
+                        column_id = row['cid']
+                        column_name = row['name']
+                        column_type = get_type_by_name(row['type'])
+                        column_is_not_null = True if row['notnull'] == 1 else False
+                        column_default = row['dflt_value']
+                        column_is_primary_key = True if row['pk'] == 1 else False
+
+                        table_info = self._fields_info.setdefault(table_name, {})
+                        field_info = table_info.setdefault(column_name, {})
+
+                        if column_default is None:
+                            column_default = get_default_value(for_type=column_type)
+
+                        field_info['id'] = column_id
+                        field_info['name'] = column_name
+                        field_info['type'] = column_type
+                        field_info['default'] = column_default
+
+            except Exception as ex:
+                logger.error(ex)
+
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
     def create_connection(self) -> DBConnection:
         # sqlite3.enable_callback_tracebacks(True)
@@ -803,6 +845,8 @@ class DBManager(metaclass=MetaSingleton):
     # @retry(retry_on_exception=_retry_if_exception, logger=logger)
     def prepare_query(self, statement: Text,
                       parameters: Optional[Union[Any, List[Any], Tuple[Any]]] = None) -> DBCursor:
+        self._load_schema()
+
         cursor = self.create_cursor()
 
         try:
@@ -937,11 +981,22 @@ class DBManager(metaclass=MetaSingleton):
                 is_many = isinstance(item, tuple) and is_many
         return is_many
 
-    @staticmethod
-    def convert_row_values(row: Union[List[Any], Tuple[Any], Dict[str, Any]]) -> Optional[DBRecord]:
+    @classmethod
+    def convert_row_values(cls, row: Dict[str, Any]) -> Optional[DBRecord]:
+        types = {}
+        defaults = {}
+        if len(cls._fields_info) > 0:
+            for key, _ in row.items():
+                for _, fields in cls._fields_info.items():
+                    if key in fields:
+                        types.setdefault(key, fields[key]['type'])
+                        if row[key] is None:
+                            row[key] = fields[key]['default']
+                        break
+
         if row is not None:
             record = DBRecord()
-            record.put_field(row)
+            record.put_field(row, types=types)
             logger.debug(str(record))
             return record
         return None
@@ -979,77 +1034,6 @@ def create_database(name: str) -> DBManager:
         logger.debug(f"Use DBManager({name})")
         return DBManager(name=name)
 
-
-# def do_insert(name: str, builder: SQLBuilder, *args) -> int:
-#     try:
-#         database_class = get_database_manager_class()
-#
-#         with Closer(database_class(name=name)) as database:
-#             parameters = tuple(args) if len(args) > 0 else None
-#             return database.execute_update(builder.make_insert_statement(), parameters)
-#     except Error as error:
-#         logger.error(error)
-#
-#     return 0
-#
-#
-# def do_update(name: str, builder: SQLBuilder, *args) -> int:
-#     try:
-#         database_class = get_database_manager_class()
-#
-#         with Closer(database_class(name=name)) as database:
-#             parameters = tuple(args) if len(args) > 0 else None
-#             if parameters is not None:
-#                 return database.execute_update(builder.make_update_statement(), parameters)
-#             else:
-#                 return database.execute_update(builder.make_update_statement())
-#     except Exception as error:
-#         logger.error(error)
-#
-#     return 0
-#
-#
-# def do_delete(name: str, builder: SQLBuilder, *args) -> int:
-#     try:
-#         database_class = get_database_manager_class()
-#
-#         with Closer(database_class(name=name)) as database:
-#             parameters = tuple(args) if len(args) > 0 else None
-#             return database.execute_update(builder.make_delete_statement(), parameters)
-#     except Error as error:
-#         logger.error(error)
-#
-#     return 0
-#
-#
-# def do_execute(name: str, builder: SQLBuilder, *args) -> Union[Any, DBRecord]:
-#     try:
-#         database_class = get_database_manager_class()
-#
-#         with Closer(database_class(name=name)) as database:
-#             parameters = tuple(args) if len(args) > 0 else None
-#             for record in database.run_process(builder.make_select_statement(), parameters):
-#                 yield record
-#     except Error as error:
-#         logger.error(error)
-#
-#     return None
-#
-#
-# def do_execute_once(name: str, builder: SQLBuilder, *args) -> Union[Any, DBRecord]:
-#     try:
-#         database_class = get_database_manager_class()
-#
-#         with Closer(database_class(name=name)) as database:
-#             parameters = tuple(args) if len(args) > 0 else None
-#             return database.execute_once(builder.make_select_statement(), parameters)
-#     except Error as error:
-#         logger.error(str(error))
-#
-#     return None
-
-
-# --------------------
 
 def register_adapters_and_converters():
     def datetime_adapter(value):

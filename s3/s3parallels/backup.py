@@ -1,12 +1,13 @@
 #  Copyright (c) 2021. by Roman N. Krivov a.k.a. Eochaid Bres Drow
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Tuple
 
 from s3.s3base.s3baseobject import INFO_FIELD_NAME, INFO_LOCAL, INFO_REMOTE, INFO_OP, \
     OP_DELETE, OP_UPDATE, OP_INSERT
 from s3.s3base.s3consts import VM_SNAPSHOT_DAYS_COUNT, VM_SNAPSHOT_COUNT
 from s3.s3base.s3typing import VirtualMachineID
 from s3.s3parallels.errors import VMError
+from s3.s3parallels.objects.snapshot import ParallelsSnapshot
 from s3.s3parallels.objects.virtualmachine import ParallelsVirtualMachine
 from s3.s3parallels.operation import S3ParallelsOperation
 from utils.app_logger import get_logger
@@ -67,6 +68,12 @@ class S3ParallelsBackupException(VMError):
 
 class S3ParallelsBackup(S3ParallelsOperation):
 
+    def __init__(self, bucket: str, **kwargs):
+        super().__init__(bucket, **kwargs)
+
+    def __del__(self):
+        super().__del__()
+
     def _compare_files(self, file_info_remote: Dict[str, Any], file_info_local: Dict[str, Any]) -> Optional[str]:
         if file_info_remote is not None and file_info_local is not None:
             return OP_UPDATE
@@ -94,7 +101,7 @@ class S3ParallelsBackup(S3ParallelsOperation):
         local_file_name = make_string_from_template(local_file_name, path=remove_end_path_sep(self._local_path))
         remote_file_name = make_string_from_template(remote_file_name, path=remove_end_path_sep(self._archive_path))
 
-        logger.info(f"Upload new file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
+        logger.debug(f"Upload new file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
         await self.storage.upload_file_async(local_file_name, remote_file_name, show_progress=self.show_progress)
         await self._insert_file_to_dbase_async(file_info=local_file_info)
         logger.info(f"File {remote_file_name} ({size_to_human(get_file_size(local_file_name))}) was uploaded.")
@@ -121,9 +128,7 @@ class S3ParallelsBackup(S3ParallelsOperation):
         local_file_name = make_string_from_template(local_file_name, path=remove_end_path_sep(self._local_path))
         remote_file_name = make_string_from_template(remote_file_name, path=remove_end_path_sep(self._archive_path))
 
-        logger.info(f"Upload changed file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
-        # print(f"Upload changed file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
-
+        logger.debug(f"Upload changed file {remote_file_name} ({size_to_human(get_file_size(local_file_name))})")
         await self.storage.upload_file_async(local_file_name, remote_file_name, show_progress=self.show_progress)
         await self._update_file_in_dbase_async(file_info=local_file_info)
         logger.info(f"File {remote_file_name} ({size_to_human(get_file_size(local_file_name))}) was uploaded.")
@@ -141,7 +146,7 @@ class S3ParallelsBackup(S3ParallelsOperation):
 
         remote_file_name = make_string_from_template(remote_file_name, path=remove_end_path_sep(self._archive_path))
 
-        logger.info(f'Delete removed file {remote_file_name}')
+        logger.debug(f'Delete removed file {remote_file_name}')
         await self.storage.delete_file_async(remote_file_name)
         await self._delete_file_from_dbase_async(file_info=remote_file_info)
         logger.info(f'File {remote_file_name} was deleted')
@@ -156,12 +161,24 @@ class S3ParallelsBackup(S3ParallelsOperation):
                 self._operation_tasks = []
 
             if operation_id == OP_INSERT:
-                self.append_task_to_list(self._do_insert_file(local_file_info=local_file_info))
+                self.append_task_to_list(
+                    future=self._do_insert_file(
+                        local_file_info=local_file_info
+                    )
+                )
             elif operation_id == OP_UPDATE:
                 self.append_task_to_list(
-                    self._do_update_file(local_file_info=local_file_info, remote_file_info=remote_file_info))
+                    future=self._do_update_file(
+                        local_file_info=local_file_info,
+                        remote_file_info=remote_file_info
+                    )
+                )
             elif operation_id == OP_DELETE:
-                self.append_task_to_list(self._do_delete_file(remote_file_info=remote_file_info))
+                self.append_task_to_list(
+                    future=self._do_delete_file(
+                        remote_file_info=remote_file_info
+                    )
+                )
         else:
             raise VMError(f'Incorrect operation ("{operation_id.upper()}").')
 
@@ -175,7 +192,7 @@ class S3ParallelsBackup(S3ParallelsOperation):
                                     local_file_info=local_file,
                                     remote_file_info=remote_file)
 
-        self.run_task_list()
+        self.run_tasks()
 
     def _process_with_virtual_machine(self, virtual_machine: ParallelsVirtualMachine):
         virtual_machine_id = virtual_machine.id
@@ -185,11 +202,28 @@ class S3ParallelsBackup(S3ParallelsOperation):
             super(S3ParallelsBackup, self)._process_with_virtual_machine(virtual_machine=virtual_machine)
 
     def _update_snapshots(self, virtual_machine_id: VirtualMachineID) -> bool:
+        def find_last_snapshot(snapshots_list: List[ParallelsSnapshot]) -> Tuple[int, ParallelsSnapshot]:
+            if len(snapshots_list) == 1:
+                return 0, snapshots_list[0]
+
+            last_index = -1
+            last_date = datetime.min
+
+            for snapshot_index, snapshot in enumerate(snapshots_list):
+                if snapshot.date > last_date:
+                    last_date = snapshot.date
+                    last_index = snapshot_index
+
+            return last_index, snapshots_list[last_index] if 0 <= last_index < len(snapshots_list) else None
+
         snapshot_list = self.parallels.get_snapshot_list(virtual_machine_id=virtual_machine_id)
         snapshot_for_delete_list = [snapshot for snapshot in snapshot_list
                                     if snapshot.get('days', 0) >= VM_SNAPSHOT_DAYS_COUNT]
 
-        need_create_snapshot = False
+        if len(snapshot_for_delete_list) == len(snapshot_list):
+            last_index, _ = find_last_snapshot(snapshot_for_delete_list)
+            if 0 <= last_index < len(snapshot_for_delete_list):
+                snapshot_for_delete_list = snapshot_for_delete_list[:last_index - 1]
 
         if len(snapshot_for_delete_list) > 0:
             for snapshot in snapshot_list:
@@ -197,14 +231,17 @@ class S3ParallelsBackup(S3ParallelsOperation):
                     self.parallels.delete_snapshot(virtual_machine_id=virtual_machine_id, snapshot_id=snapshot.id)
             snapshot_list = self.parallels.get_snapshot_list(virtual_machine_id=virtual_machine_id)
 
+        need_create_snapshot = False
+
         if 0 <= len(snapshot_list) < VM_SNAPSHOT_COUNT:
-            if len(snapshot_list) > 0:
-                last_snapshot = snapshot_list[-1]
-                snapshot_date: datetime = last_snapshot.date
-                if snapshot_date.date() < datetime.now().date():
-                    need_create_snapshot = True
-            else:
+            if len(snapshot_list) == 0:
                 need_create_snapshot = True
+            else:
+                _, last_snapshot = find_last_snapshot(snapshot_list)
+                snapshot_date: datetime = last_snapshot.date
+                snapshot_days: int = last_snapshot.days
+                snapshot_days_max: int = int(VM_SNAPSHOT_DAYS_COUNT // VM_SNAPSHOT_COUNT)
+                need_create_snapshot = (snapshot_date.date() < datetime.now().date() and snapshot_days >= snapshot_days_max)
 
             if need_create_snapshot:
                 self.parallels.create_snapshot(virtual_machine_id=virtual_machine_id)

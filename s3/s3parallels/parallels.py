@@ -39,6 +39,7 @@ def _json_decode(json_text: Text) -> Optional[Union[Dict[str, Any], List[Dict[st
 
 class Parallels(metaclass=MetaSingleton):
     def __init__(self):
+        logger.debug('-' * 4 + f" Constructor object {self.__class__.__name__}" + '-' * 40)
         self._vm_list = []
 
         self._parallels_home_path = os.path.join(consts.HOME_FOLDER, 'Parallels')
@@ -53,6 +54,9 @@ class Parallels(metaclass=MetaSingleton):
 
         if self._parallels_control_command == '':
             raise VMError('Command prlctl is not exists.')
+
+    def __del__(self):
+        logger.debug('-' * 4 + f" Destroyer object {self.__class__.__name__}" + '-' * 40)
 
     @property
     def parallels_home_path(self) -> str:
@@ -192,42 +196,38 @@ class Parallels(metaclass=MetaSingleton):
             uuid=convert_uuid_to_string(vm_id=virtual_machine_id)
         )
 
-        json_data = _json_decode(snapshot_list_text)
+        snapshot_list_text = snapshot_list_text.strip()
+        if len(snapshot_list_text) > 0:
+            json_data = _json_decode(snapshot_list_text)
 
-        if len(json_data) > 0:
-            for snapshot_id, snapshot in json_data.items():
-                parallelsSnapshot = ParallelsSnapshot(dictionary=snapshot)
+            if len(json_data) > 0:
+                for snapshot_id, snapshot in json_data.items():
+                    parallels_snapshot: ParallelsSnapshot = ParallelsSnapshot(dictionary=snapshot)
 
-                parallelsSnapshot.put('days', 0.0)
-                parallelsSnapshot.put('id', snapshot_id)
+                    parallels_snapshot.put('days', 0.0)
+                    parallels_snapshot.put('id', snapshot_id)
 
-                if not isinstance(parallelsSnapshot.date, datetime):
-                    snapshot_date = convert_value_to_type(parallelsSnapshot.date, to_type=datetime)
-                    if snapshot_date is not None:
-                        parallelsSnapshot.date = snapshot_date
+                    if not isinstance(parallels_snapshot.date, datetime):
+                        snapshot_date = convert_value_to_type(parallels_snapshot.date, to_type=datetime)
+                        if snapshot_date is not None:
+                            parallels_snapshot.date = snapshot_date
 
-                        p_days = float((datetime.now() - snapshot_date).total_seconds()) / float(consts.SECONDS_PER_DAY)
-                        p_days = math.floor(p_days)
-                        p_days = int(p_days)
+                            p_days = float((datetime.now() - snapshot_date).total_seconds()) / float(consts.SECONDS_PER_DAY)
+                            p_days = math.floor(p_days)
+                            p_days = int(p_days)
 
-                        parallelsSnapshot.days = p_days
+                            parallels_snapshot.days = p_days
 
-                        # logger.debug(
-                        #     f"Snapshot {snapshot_id} expire "
-                        #     f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
-                        #     f" ({parallelsSnapshot.days} {'days' if parallelsSnapshot.days > 1 else 'day'})"
-                        # )
+                            logger.info(
+                                f"Snapshot {snapshot_id} was created on {parallels_snapshot.date.strftime('%Y-%m-%d %H:%M')} "
+                                "and expire "
+                                f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
+                                f" ({parallels_snapshot.days} {'days' if parallels_snapshot.days > 1 else 'day'})"
+                            )
 
-                        logger.info(
-                            f"Snapshot {snapshot_id} was created on {parallelsSnapshot.date.strftime('%Y-%m-%d %H:%M')} "
-                            f"and expire "
-                            f"{(snapshot_date + timedelta(days=VM_SNAPSHOT_DAYS_COUNT)).strftime('%Y-%m-%d %H:%M')}"
-                            f" ({parallelsSnapshot.days} {'days' if parallelsSnapshot.days > 1 else 'day'})"
-                        )
+                    snapshot_list.append(parallels_snapshot)
 
-                snapshot_list.append(parallelsSnapshot)
-
-            snapshot_list.sort(key=lambda virtual_machine_snapshot: virtual_machine_snapshot.get('date', datetime.min))
+                snapshot_list.sort(key=lambda virtual_machine_snapshot: virtual_machine_snapshot.get('date', datetime.min))
 
         return snapshot_list
 
@@ -307,7 +307,7 @@ class Parallels(metaclass=MetaSingleton):
         return None
 
     def set_virtual_machine_status(self, virtual_machine_id: VirtualMachineID, status: str):
-        logger.info(f'Set status {status.upper()} to VM {self.get_virtual_machine_name(virtual_machine_id)}')
+        logger.debug(f'Set status {status.upper()} to VM {self.get_virtual_machine_name(virtual_machine_id)}')
         self._execute_parallels_command(('$status', '$uuid'),
                                         status=status,
                                         uuid=convert_uuid_to_string(virtual_machine_id))

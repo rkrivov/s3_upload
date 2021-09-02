@@ -84,6 +84,7 @@ class S3Base(metaclass=MetaSingleton):
     instance = None
 
     def __init__(self, bucket: str, local_path: Optional[str] = None, remote_path: Optional[str] = None):
+        logger.debug('-' * 4 + f" Constructor object {self.__class__.__name__}" + '-' * 40)
         self._bucket_name = bucket
         self._local_path = local_path
         self._chuck_size = int(float(psutil.virtual_memory().free) * 0.75)
@@ -113,7 +114,7 @@ class S3Base(metaclass=MetaSingleton):
         logger.debug(f"Chuck size is {size_to_human(self._chuck_size)}")
 
     def __del__(self):
-        pass
+        logger.debug('-' * 4 + f" Destroyer object {self.__class__.__name__}" + '-' * 40)
 
     @property
     def bucket(self):
@@ -337,113 +338,9 @@ class S3Base(metaclass=MetaSingleton):
         str, Any]:
         pass
 
-    #
-    # if local_path is None:
-    #     local_path = self._local_path
-    #
-    # if operations_list is None:
-    #     operations_list = {}
-    #
-    # if os.path.isfile(local_path):
-    #     local_file_name = local_path
-    #     self._local_path = os.path.dirname(local_file_name)
-    #
-    #     name = local_file_name
-    #
-    #     if name.startswith(local_path):
-    #         name = name[len(local_path):]
-    #         name = append_start_path_sep(name)
-    #
-    #     name_hash = get_name_hash(name)
-    #
-    #     file_info = get_file_info(file=local_file_name)
-    #
-    #     operation_info = operators.setdefault(name_hash, {})
-    #     operation_info[INFO_LOCAL] = file_info
-    #     operation_info[INFO_OP] = OP_INSERT
-    # else:
-    #     for root, dirs, files in os.walk(self._local_path):
-    #         for file in files:
-    #             if not file.startswith('.') and not file.startswith('~'):
-    #                 local_file_path = os.path.join(
-    #                     append_end_path_sep(root),
-    #                     remove_start_path_sep(file)
-    #                 )
-    #
-    #                 name = local_file_path
-    #
-    #                 if name.startswith(local_path):
-    #                     name = name[len(local_path):]
-    #                     name = append_start_path_sep(name)
-    #
-    #                 name_hash = get_name_hash(name)
-    #
-    #                 file_info = get_file_info(file=local_file_path)
-    #
-    #                 operation_info = operators.setdefault(name_hash, {})
-    #                 operation_info[INFO_LOCAL] = file_info
-    #                 operation_info[INFO_OP] = OP_INSERT
-    #
-    # return operators
-
     def _fetch_remote_files_list(self, remote_path: str = None, operations: Optional[Dict[str, Any]] = None) -> Dict[
         str, Any]:
         pass
-
-    #
-    # if remote_path is None:
-    #     remote_path = self._archive_path
-    #
-    # if operators is None:
-    #     operators = {}
-    #
-    # prefix = append_end_path_sep(remote_path)
-    # objects_count = self.storage.get_objects_count(prefix=prefix)
-    #
-    # if objects_count > 0:
-    #     completed_objects_count = 0
-    #
-    #     for remote_object in self.storage.fetch_bucket_objects(prefix=prefix):
-    #         if self.show_progress:
-    #             completed_objects_count += 1
-    #             print_progress_bar(iteration=completed_objects_count,
-    #                                total=objects_count,
-    #                                prefix='Fetching remote objects',
-    #                                length=get_terminal_width())
-    #
-    #         file_name = convert_value_to_type(remote_object.get('Key', None), to_type=str)
-    #
-    #         name = file_name
-    #         if name.startswith(prefix):
-    #             name = name[len(prefix):]
-    #             name = append_start_path_sep(name)
-    #
-    #         name_hash = get_name_hash(name)
-    #
-    #         file_size = convert_value_to_type(remote_object.get('Size', None), to_type=int)
-    #         file_mtime = convert_value_to_type(remote_object.get('LastModified', None), to_type=datetime)
-    #         file_mtime = file_mtime.replace(tzinfo=pytz.UTC)
-    #         file_mtime = datetime.fromtimestamp(time.mktime(file_mtime.timetuple()))
-    #         file_hash = convert_value_to_type(remote_object.get('ETag', None), to_type=str)
-    #
-    #         if file_hash is not None:
-    #             if file_hash.startswith('"'):
-    #                 file_hash = file_hash[1:]
-    #             if file_hash.endswith('"'):
-    #                 file_hash = file_hash[:-1]
-    #
-    #         file_info = {
-    #             INFO_FIELD_NAME: file_name,
-    #             INFO_FIELD_SIZE: file_size,
-    #             INFO_FIELD_MTIME: file_mtime,
-    #             INFO_FIELD_HASH: file_hash
-    #         }
-    #
-    #         operation_info = operators.setdefault(name_hash, {})
-    #         operation_info[INFO_REMOTE] = file_info
-    #         operation_info[INFO_OP] = OP_DELETE
-    #
-    # return operators
 
     def _init_storage_control(self) -> S3Storage:
 
@@ -451,7 +348,7 @@ class S3Base(metaclass=MetaSingleton):
             delattr(self, '_storage')
 
         self._storage = S3Storage(bucket=self.bucket)
-        # self._storage = S3StorageZip(bucket=self.bucket)
+
         return self._storage
 
     def _make_local_file(self, file_name: str) -> str:

@@ -211,15 +211,16 @@ def run_command(*args, **kwargs) -> Any:
 
 
 def get_string(o) -> str:
-    if isinstance(o, str):
-        ret = o
-    else:
-        if isinstance(o, bytes):
-            ret = o.decode(json.detect_encoding(o))
-        elif hasattr(o, '__str__'):
-            ret = str(o)
+    ret = None
+
+    if o is not None:
+        if isinstance(o, str):
+            ret = o
         else:
-            ret = None
+            if isinstance(o, bytes):
+                ret = o.decode(json.detect_encoding(o))
+            elif hasattr(o, '__str__'):
+                ret = str(o)
 
     return ret
 

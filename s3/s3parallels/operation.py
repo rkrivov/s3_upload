@@ -15,6 +15,7 @@ from s3.s3base.s3baseobject import S3Base, get_name_hash, get_file_info, INFO_LO
     INFO_FIELD_SIZE, INFO_FIELD_MTIME, INFO_FIELD_HASH, OP_DELETE, INFO_REMOTE, OP_UPDATE
 from s3.s3base.s3consts import VM_STATUS_RUNNING, VM_STATUS_PAUSED, VM_SNAPSHOT_DAYS_COUNT, VM_SNAPSHOT_COUNT, \
     VM_SNAPSHOT_POWER_ON, VM_TYPE_PACKED, VM_TYPE_ARCHIVED
+from s3.s3base.s3object import S3Object
 from s3.s3base.s3typing import VirtualMachineID
 from s3.s3functions import convert_uuid_to_string, remote_brackets
 from s3.s3parallels.errors import VMUnknownUUIDError
@@ -97,6 +98,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
     """
 
     def __init__(self, bucket: str, **kwargs):
+        logger.debug('-' * 4 + f" Constructor object {self.__class__.__name__}" + '-' * 40)
         self._database = dbase.create_database(name=S3ParallelsOperation.DATABASE)
         self._database.execute_script(S3ParallelsOperation.SCRIPT)
 
@@ -122,9 +124,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
         AsyncObjectHandler.__init__(self)
 
     def __del__(self):
-        # if self._main_event_loop.is_running():
-        #     self._main_event_loop.run_forever()
-        # self._main_event_loop.close()
+        logger.debug('-' * 4 + f" Destroyer object {self.__class__.__name__}" + '-' * 40)
 
         if hasattr(self, '_database'):
             if self._database is not None:
@@ -290,10 +290,45 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             logger.exception("Error deleting file information: {}".format(get_string(exception)))
             raise exception from None
 
+    def _do_compare_files(self, file_info_remote: Dict[str, Any], file_info_local: Dict[str, Any]) -> Optional[str]:
+
+        if file_info_remote is not None and file_info_local is not None:
+            file_name_remote = file_info_remote.get(INFO_FIELD_NAME, '')
+            file_name_local = file_info_local.get(INFO_FIELD_NAME, '')
+
+            file_name_remote = make_string_from_template(file_name_remote, path=remove_end_path_sep(self._archive_path))
+            file_name_local = make_string_from_template(file_name_local, path=remove_end_path_sep(self._local_path))
+
+            file_mtime_remote = file_info_remote.get(INFO_FIELD_MTIME, datetime.min)
+            file_mtime_local = file_info_local.get(INFO_FIELD_MTIME, datetime.min)
+
+            if file_mtime_remote != file_mtime_local:
+                file_size_remote = file_info_remote.get(INFO_FIELD_SIZE, 0)
+                file_size_local = file_info_local.get(INFO_FIELD_SIZE, 0)
+
+                if file_size_remote != file_size_local:
+                    file_hash_remote = file_info_remote.get(INFO_FIELD_HASH, None)
+                    file_hash_local = file_info_local.get(INFO_FIELD_HASH, None)
+
+                    if file_hash_remote is None:
+                        file_object = self.storage.get_object_info(remote_file_path=file_name_remote)
+                        file_hash_remote = file_object.get('ETag', '')
+
+                    if file_hash_local is None:
+                        file_hash_local = self._calc_hash(file_path=file_name_local)
+
+                    if file_hash_remote != file_hash_local:
+                        return OP_UPDATE
+
+        elif file_info_remote is not None and file_info_local is None and self.delete_removed:
+            return OP_DELETE
+        elif file_info_remote is None and file_info_local is not None:
+            return OP_INSERT
+
+        return None
+
     def _fetch_local_files_list(self, local_path: str = None,
                                 operations: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        self._init_cache()
-
         if local_path is None:
             local_path = self._local_path
 
@@ -335,28 +370,11 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
                         operation_info = operations.setdefault(name_hash, {})
 
-                        need_calc_hash = False
-                        operation_name = ''
-
                         file_info_remote = operation_info.get(INFO_REMOTE, None)
-                        if file_info_remote is None:
-                            need_calc_hash = True
-                            operation_name = OP_INSERT
-                        else:
-                            file_size_remote = file_info_remote.get(INFO_FIELD_SIZE, 0)
-                            file_size_local = file_info.get(INFO_FIELD_SIZE, 0)
 
-                            file_mtime_remote = file_info_remote.get(INFO_FIELD_MTIME, datetime.min)
-                            file_mtime_local = file_info.get(INFO_FIELD_MTIME, datetime.min)
+                        operation_name = self._do_compare_files(file_info_remote=file_info_remote, file_info_local=file_info)
 
-                            if not is_equal(file_size_remote, file_size_local) and \
-                                    not is_equal(file_mtime_remote, file_mtime_local):
-                                need_calc_hash = True
-                                operation_name = OP_UPDATE
-
-                        if need_calc_hash:
-                            file_info[INFO_FIELD_HASH] = self._calc_hash(local_file_path)
-
+                        if operation_name is not None:
                             operation_info[INFO_LOCAL] = file_info
                             operation_info[INFO_OP] = operation_name
                         else:
@@ -481,8 +499,8 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
             src_file_name = fetched_object.get('Key')
             tmp_file_name = make_template_from_string(src_file_name, path=remove_end_path_sep(self._archive_path))
             dst_file_name = make_string_from_template(tmp_file_name, path=remove_end_path_sep(self._bak_archive_path))
-            self.append_task_to_list(self.storage.copy_object_async(src_file_name, dst_file_name))
-        self.run_task_list()
+            self.append_task_to_list(future=self.storage.copy_object_async(src_file_name, dst_file_name))
+        self.run_tasks()
 
     def get_virtual_machine_info(self, virtual_machine_id: VirtualMachineID) -> Optional[Dict[str, Any]]:
         vm_info = self.load_virtual_machine_info(virtual_machine_id=virtual_machine_id)
@@ -693,7 +711,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
         backup_remote_path = os.path.join(
             backup_remote_path,
-            datetime.now().strftime("%Y/%j/%H%M")
+            datetime.now().strftime("%Y-%j-%H%M")
         )
 
         backup_remote_path = append_end_path_sep(backup_remote_path)
@@ -708,32 +726,43 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
         self.set_backup_archive_path(backup_remote_path)
 
     def _init_cache(self):
-        start_time = time.time()
-        try:
-            from utils.files_multi_threads import scan_folder_async
+        if self._hash_cache is None:
+            self._hash_cache = []
 
-            future = asyncio.ensure_future(scan_folder_async(self._local_path, loop=self.main_loop))
-            result = self.main_loop.run_until_complete(future=future)
+        if len(self._hash_cache) == 0:
+            start_time = time.time()
+            logger.info("Initialize the cache of file hashes...")
+            try:
+                from utils.files_multi_threads import scan_folder_async
+                future = asyncio.ensure_future(scan_folder_async(self._local_path, loop=self.default_loop))
+                assert future is not None
+                result = self.default_loop.run_until_complete(future=future)
 
-            if result is not None:
-                files_hash = result
-                self._hash_cache.clear()
+                if result is not None:
+                    files_hash = result
+                    self._hash_cache.clear()
 
-                for file_name, file_hash in files_hash.items():
-                    self._hash_cache[file_name] = file_hash
+                    for file_name, file_hash in files_hash.items():
+                        self._hash_cache[file_name] = file_hash
 
-        finally:
-            logger.info(
-                f"Elapsed is {time_to_string(time.time() - start_time, human=True)} ({len(self._hash_cache)} file(s))")
+            finally:
+                logger.info(
+                    f"Elapsed is {time_to_string(time.time() - start_time, human=True)} "
+                    f"({len(self._hash_cache)} file(s))."
+                )
 
     def _process_with_virtual_machine(self, virtual_machine: ParallelsVirtualMachine) -> None:
         self._init_path(virtual_machine=virtual_machine)
+
+        self._init_cache()
 
         files = self.fetch_files()
 
         if len(files) > 0:
             self._copy_to_archive()
             self.operation(files, virtual_machine=virtual_machine)
+        else:
+            logger.warning(f"No modified files!!!")
 
     def _check_virtual_machine(self, virtual_machine_id: VirtualMachineID) -> bool:
 
@@ -770,7 +799,7 @@ class S3ParallelsOperation(S3Base, AsyncObjectHandler):
 
                 logger.info(
                     f"Found {virtual_machine_type} {virtual_machine_name} with identifier {virtual_machine_id} "
-                    f"and uptime is {time_to_short_string(virtual_machine_uptime)}."
+                    f"and uptime is {time_to_string(virtual_machine_uptime)}."
                 )
 
                 self._process_with_virtual_machine(virtual_machine=virtual_machine)
